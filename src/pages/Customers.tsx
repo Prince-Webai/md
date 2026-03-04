@@ -184,9 +184,16 @@ const Customers = () => {
         try {
             if (editingId) {
                 // Update
+                const customerPayload = {
+                    name: newCustomer.name,
+                    email: newCustomer.email || null,
+                    phone: newCustomer.phone || null,
+                    address_line1: newCustomer.address || null
+                };
+
                 const { error } = await supabase
                     .from('customers')
-                    .update(newCustomer)
+                    .update(customerPayload)
                     .eq('id', editingId);
 
                 if (error) throw error;
@@ -199,7 +206,14 @@ const Customers = () => {
                 }
             } else {
                 // Create
-                const { data, error } = await supabase.from('customers').insert([newCustomer]).select();
+                const customerPayload = {
+                    name: newCustomer.name,
+                    email: newCustomer.email || null,
+                    phone: newCustomer.phone || null,
+                    address_line1: newCustomer.address || null
+                };
+
+                const { data, error } = await supabase.from('customers').insert([customerPayload]).select();
                 if (error) throw error;
                 if (data) {
                     setCustomers([...customers, data[0]]);
@@ -218,11 +232,11 @@ const Customers = () => {
         if (!selectedCustomer) return;
         setNewCustomer({
             name: selectedCustomer.name,
-            address: selectedCustomer.address || '',
-            contact_person: selectedCustomer.contact_person || '',
+            address: selectedCustomer.address_line1 || selectedCustomer.address || '',
+            contact_person: '',
             email: selectedCustomer.email || '',
             phone: selectedCustomer.phone || '',
-            payment_terms: selectedCustomer.payment_terms
+            payment_terms: 'Net 30'
         });
         setEditingId(selectedCustomer.id);
         setIsModalOpen(true);
@@ -230,8 +244,8 @@ const Customers = () => {
 
     const filteredCustomers = customers.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.address?.toLowerCase().includes(searchTerm.toLowerCase())
+        c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.address_line1?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const [customerJobs, setCustomerJobs] = useState<any[]>([]);
@@ -370,8 +384,8 @@ const Customers = () => {
                                 <div className="text-right flex flex-col items-end gap-2">
                                     <div>
                                         <div className="text-sm text-slate-500 mb-1">Account Balance</div>
-                                        <div className={`text-4xl font-extrabold mb-4 ${selectedCustomer.account_balance > 0 ? 'text-delaval-blue' : 'text-green-600'}`}>
-                                            €{selectedCustomer.account_balance.toLocaleString()}
+                                        <div className={`text-4xl font-extrabold mb-4 ${(selectedCustomer.account_balance || 0) > 0 ? 'text-delaval-blue' : 'text-green-600'}`}>
+                                            €{(selectedCustomer.account_balance || 0).toLocaleString()}
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -673,8 +687,8 @@ const Customers = () => {
                                         <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
                                             <div>
                                                 <div className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Outstanding</div>
-                                                <div className={`text-xl font-extrabold ${customer.account_balance > 0 ? 'text-delaval-blue' : 'text-green-600'}`}>
-                                                    €{customer.account_balance.toLocaleString()}
+                                                <div className={`text-xl font-extrabold ${(customer.account_balance || 0) > 0 ? 'text-delaval-blue' : 'text-green-600'}`}>
+                                                    €{(customer.account_balance || 0).toLocaleString()}
                                                 </div>
                                             </div>
                                             <button className="w-10 h-10 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-delaval-blue group-hover:text-white transition-colors">
@@ -722,7 +736,7 @@ const Customers = () => {
                         <div className="bg-[#1863DC] rounded-2xl p-5 mb-6 text-white shadow-[0_8px_20px_rgba(0,81,165,0.2)] relative overflow-hidden">
                             <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
                             <div className="text-white/80 text-[11px] font-bold uppercase tracking-widest mb-1 relative z-10">Outstanding Balance</div>
-                            <div className="text-3xl font-black tracking-tight relative z-10">€{selectedCustomer.account_balance.toLocaleString()}</div>
+                            <div className="text-3xl font-black tracking-tight relative z-10">€{(selectedCustomer.account_balance || 0).toLocaleString()}</div>
                         </div>
 
                         {/* Quick Actions Grid */}
@@ -855,8 +869,8 @@ const Customers = () => {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <div className={`font-black text-[15px] ${customer.account_balance > 0 ? 'text-[#1863DC]' : 'text-[#14A637]'}`}>
-                                                    €{customer.account_balance.toLocaleString()}
+                                                <div className={`font-black text-[15px] ${(customer.account_balance || 0) > 0 ? 'text-[#1863DC]' : 'text-[#14A637]'}`}>
+                                                    €{(customer.account_balance || 0).toLocaleString()}
                                                 </div>
                                                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Balance</div>
                                             </div>

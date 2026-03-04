@@ -138,7 +138,7 @@ const Jobs = () => {
                         name: newCustomerData.name,
                         phone: newCustomerData.phone || null,
                         email: newCustomerData.email || null,
-                        address: newCustomerData.address || null
+                        address_line1: newCustomerData.address || null
                     }])
                     .select()
                     .single();
@@ -149,12 +149,19 @@ const Jobs = () => {
                 finalCustomerId = custData.id;
             }
 
-            const jobToSave = { ...newJob, customer_id: finalCustomerId };
+            const jobToSave = {
+                customer_id: finalCustomerId,
+                machine_details: newJob.service_type || 'General Service',
+                problem_description: newJob.notes || null,
+                status: newJob.status || 'Booked In',
+                mechanic_id: newJob.engineer_name || null,
+                date_scheduled: newJob.date_scheduled ? new Date(newJob.date_scheduled).toISOString() : null
+            };
 
             let jobId = editingId;
             if (editingId) {
                 // Update
-                const { error } = await dataService.updateJob(editingId, jobToSave);
+                const { error } = await dataService.updateJob(editingId, jobToSave as any);
                 if (error) throw error;
 
                 // For updates, we'll keep it simple: delete old items and add new ones
@@ -162,7 +169,7 @@ const Jobs = () => {
                 await supabase.from('job_items').delete().eq('job_id', editingId);
             } else {
                 // Create
-                const { data, error } = await dataService.createJob(jobToSave);
+                const { data, error } = await dataService.createJob(jobToSave as any);
                 if (error) throw error;
                 if (!data) throw new Error("Failed to create job");
                 jobId = data.id;

@@ -3,12 +3,13 @@ export interface Customer {
     id: string;
     created_at: string;
     name: string;
-    address?: string;
+    address?: string; // Legacy
+    address_line1?: string;
     contact_person?: string;
     email?: string;
     phone?: string;
-    account_balance: number;
-    payment_terms: string;
+    account_balance?: number;
+    payment_terms?: string;
 }
 
 export interface InventoryItem {
@@ -30,11 +31,16 @@ export interface Job {
     created_at: string;
     job_number: number;
     customer_id: string;
-    engineer_name?: string;
-    service_type?: string;
+    machine_details?: string;
+    problem_description?: string;
     status: 'Booked In' | 'In Progress' | 'Waiting for Parts' | 'Ready to Continue' | 'Ready for Collection' | 'Completed' | 'Closed';
+    mechanic_id?: string;
     date_scheduled?: string;
     date_completed?: string;
+
+    // React specific legacy fields that we alias out inside createJob:
+    service_type?: string;
+    engineer_name?: string;
     notes?: string;
     // Joins
     customers?: Customer;

@@ -14,19 +14,25 @@ export const dataService = {
             let query = supabase
                 .from('jobs')
                 .select('*, customers(*)')
-                .order('date_scheduled', { ascending: false });
+                .order('created_at', { ascending: false });
 
             if (status && status !== 'all') {
                 query = query.eq('status', status);
             }
 
             if (engineerName) {
-                query = query.eq('engineer_name', engineerName);
+                query = query.eq('mechanic_id', engineerName);
             }
 
             const { data, error } = await query;
             if (error) throw error;
-            return data || [];
+            // Map DB column names to UI field names
+            return (data || []).map((job: any) => ({
+                ...job,
+                service_type: job.machine_details || job.service_type || '',
+                engineer_name: job.mechanic_id || job.engineer_name || '',
+                notes: job.problem_description || job.notes || ''
+            }));
         } catch (error) {
             console.error('Error fetching jobs:', error);
             return [];
@@ -42,7 +48,13 @@ export const dataService = {
                 .eq('id', id)
                 .single();
             if (error) throw error;
-            return data;
+            if (!data) return null;
+            return {
+                ...data,
+                service_type: data.machine_details || data.service_type || '',
+                engineer_name: data.mechanic_id || data.engineer_name || '',
+                notes: data.problem_description || data.notes || ''
+            };
         } catch (error) {
             console.error('Error fetching job by ID:', error);
             return null;

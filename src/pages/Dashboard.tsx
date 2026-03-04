@@ -11,7 +11,6 @@ const Dashboard = () => {
         totalRevenue: 0,
         outstandingBalance: 0,
         activeJobs: 0,
-        overdueInvoices: 0,
         lowStockItems: 0,
         completedToday: 0
     });
@@ -58,21 +57,12 @@ const Dashboard = () => {
             const userRole = user?.user_metadata?.role;
             const engineerName = userRole === 'Engineer' ? (user?.user_metadata?.name || user?.email?.split('@')[0]) : undefined;
 
-            const [invoiceData, allJobs, inventoryArray] = await Promise.all([
-                dataService.getInvoices(),
+            const [allJobs, inventoryArray] = await Promise.all([
                 dataService.getJobs(undefined, engineerName),
                 dataService.getInventory()
             ]);
 
             const { start, end } = getEffectiveRange();
-
-            // Filter Data by Date
-            const filteredInvoices = start && end
-                ? invoiceData.filter(inv => {
-                    const date = new Date(inv.date_issued);
-                    return date >= start && date <= end;
-                })
-                : invoiceData;
 
             const filteredJobs = start && end
                 ? allJobs.filter(job => {
@@ -82,15 +72,7 @@ const Dashboard = () => {
                 })
                 : allJobs;
 
-            const unpaidInvoices = filteredInvoices.filter(inv => {
-                const s = inv.status as string;
-                return s !== 'paid' && s !== 'void';
-            });
-            const outstanding = unpaidInvoices.reduce((acc, inv) => acc + (inv.total_amount - (inv.amount_paid || 0)), 0);
 
-            // Calculate Total Revenue based on filtered invoices (excluding voided)
-            const validInvoices = filteredInvoices.filter(inv => inv.status !== 'void');
-            const totalRevenue = validInvoices.reduce((acc, inv) => acc + (inv.total_amount || 0), 0);
 
             const activeJobsCount = filteredJobs.filter(j => ['Booked In', 'In Progress'].includes(j.status)).length;
 
@@ -99,12 +81,6 @@ const Dashboard = () => {
             const lowStockItemsArr = inventoryArray.filter(i => i.stock_level > 0 && i.stock_level <= (i.low_stock_threshold || 5));
             const lowStockCount = outOfStockItems.length + lowStockItemsArr.length;
 
-            const overdueCount = filteredInvoices.filter(inv => {
-                const s = inv.status as string;
-                if (s === 'paid' || s === 'void') return false;
-                if (inv.due_date && new Date(inv.due_date) < new Date()) return true;
-                return s === 'overdue';
-            }).length;
 
             // Calculate completed jobs today (mocked for visual via status)
             const completedCount = allJobs.filter(j => j.status === 'Completed').length;
@@ -134,15 +110,6 @@ const Dashboard = () => {
                 });
             }
 
-            if (overdueCount > 0) {
-                newNotifs.push({
-                    id: 'overdue-inv',
-                    title: 'Overdue Invoices',
-                    message: `There are ${overdueCount} invoices past their due date.`,
-                    type: 'error',
-                    date: new Date().toISOString()
-                });
-            }
 
             const todayStr = new Date().toISOString().split('T')[0];
             const jobsToday = allJobs.filter(j => j.date_scheduled && j.date_scheduled.startsWith(todayStr) && j.status !== 'Completed');
@@ -159,10 +126,9 @@ const Dashboard = () => {
             setNotifications(newNotifs);
 
             setStats({
-                totalRevenue: totalRevenue,
-                outstandingBalance: outstanding,
+                totalRevenue: 0, // Migrated to external POS
+                outstandingBalance: 0, // Migrated to external POS
                 activeJobs: activeJobsCount,
-                overdueInvoices: overdueCount,
                 lowStockItems: lowStockCount,
                 completedToday: completedCount
             });
@@ -187,24 +153,6 @@ const Dashboard = () => {
 
     const statCards = [
         {
-            label: 'Total Revenue',
-            value: formatCurrency(stats.totalRevenue),
-            icon: Euro,
-            color: 'bg-[#F0FDF4] text-[#16A34A]',
-            change: filterType === 'all' ? 'All Time' : filterType === 'year' ? 'This Year' : filterType === 'month' ? 'This Month' : 'Custom Period',
-            changeType: 'positive',
-            link: '/reports'
-        },
-        {
-            label: 'Outstanding Balance',
-            value: formatCurrency(stats.outstandingBalance),
-            icon: Euro,
-            color: 'bg-[#F0F6FF] text-[#1863DC]',
-            change: `${stats.overdueInvoices} overdue`,
-            changeType: stats.overdueInvoices > 0 ? 'negative' : 'positive',
-            link: '/payments'
-        },
-        {
             label: 'Active Jobs',
             value: stats.activeJobs,
             icon: Wrench,
@@ -212,15 +160,6 @@ const Dashboard = () => {
             change: 'Scheduled & in progress',
             changeType: 'positive',
             link: '/jobs'
-        },
-        {
-            label: 'Overdue Invoices',
-            value: stats.overdueInvoices,
-            icon: AlertCircle,
-            color: 'bg-[#FFE6E6] text-[#DC3545]',
-            change: stats.overdueInvoices > 0 ? 'Urgent follow-up needed' : 'All clear',
-            changeType: stats.overdueInvoices > 0 ? 'negative' : 'positive',
-            link: '/invoices'
         },
         {
             label: 'Parts Alerts',
@@ -238,7 +177,6 @@ const Dashboard = () => {
         { icon: Wrench, title: 'Parts', desc: 'Search Parts', path: '/inventory', color: 'bg-green-50 text-green-600', mColor: 'bg-[#FFF3E6] text-[#FF6B00]' },
         { icon: Users, title: 'Customers', desc: 'Farms & contacts', path: '/customers', color: 'bg-delaval-light-blue text-delaval-blue', mColor: 'bg-[#E6F9F3] text-[#14A637]' },
         { icon: FileText, title: 'All Jobs', desc: 'Full list', path: '/jobs', color: 'bg-orange-50 text-orange-600', mColor: 'bg-[#FFE6E6] text-[#DC3545]' },
-        { icon: Calendar, title: 'Monthly Invoice', desc: 'Bill customer account', path: '/invoices', color: 'bg-indigo-50 text-indigo-600', mColor: 'bg-indigo-50 text-indigo-600' },
     ];
 
     // Format date for mobile header
@@ -436,8 +374,8 @@ const Dashboard = () => {
                             <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Today</span>
                         </div>
                         <div className="bg-white rounded-[1.25rem] p-4 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center">
-                            <span className="text-[28px] font-black text-[#5C24D9] leading-none mb-1">{loading ? '-' : stats.overdueInvoices}</span>
-                            <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Awaiting</span>
+                            <span className="text-[28px] font-black text-[#5C24D9] leading-none mb-1">{loading ? '-' : stats.lowStockItems}</span>
+                            <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Parts Low</span>
                         </div>
                         <div className="bg-white rounded-[1.25rem] p-4 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center">
                             <span className="text-[28px] font-black text-[#14A637] leading-none mb-1">{loading ? '-' : stats.completedToday}</span>
