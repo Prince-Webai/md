@@ -7,10 +7,10 @@ export default {
     theme: {
         extend: {
             colors: {
-                'delaval-blue': '#1863DC',
-                'delaval-dark-blue': '#124CA8',
-                'delaval-light-blue': '#F0F6FF',
-                'delaval-accent': '#14A637',
+                'delaval-blue': '#0A8043',     // Main Green
+                'delaval-dark-blue': '#065F30', // Dark Green
+                'delaval-light-blue': '#E6F4EA', // Light Green bg
+                'delaval-accent': '#FFD700',   // Gold accent from logo
                 'success-green': '#00A862',
                 'warning-yellow': '#FFC107',
                 'error-red': '#DC3545',

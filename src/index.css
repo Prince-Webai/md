@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-    --delaval-blue: #1863DC;
-    --delaval-dark-blue: #124CA8;
-    --delaval-light-blue: #F0F6FF;
-    --delaval-accent: #FF6B00;
-    --success-green: #14A637;
+    --delaval-blue: #0A8043;
+    --delaval-dark-blue: #065F30;
+    --delaval-light-blue: #E6F4EA;
+    --delaval-accent: #FFD700;
+    --success-green: #00A862;
     --warning-yellow: #FFC107;
     --error-red: #DC3545;
     --text-primary: #1a1a1a;

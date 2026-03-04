@@ -173,9 +173,9 @@ const Dashboard = () => {
     ];
 
     const quickActions = [
-        { icon: Plus, title: 'New Job', desc: 'Log a call-out', path: '/jobs', color: 'bg-blue-50 text-blue-600', mColor: 'bg-[#F0F6FF] text-[#1863DC]' },
-        { icon: Wrench, title: 'Parts', desc: 'Search Parts', path: '/inventory', color: 'bg-delaval-light-blue text-delaval-blue', mColor: 'bg-[#F0F6FF] text-[#1863DC]' },
-        { icon: Users, title: 'Customers', desc: 'Farms & contacts', path: '/customers', color: 'bg-delaval-light-blue text-delaval-blue', mColor: 'bg-[#F0F6FF] text-[#1863DC]' },
+        { icon: Plus, title: 'New Job', desc: 'Log a call-out', path: '/jobs', color: 'bg-delaval-light-blue text-delaval-blue', mColor: 'bg-[#E6F4EA] text-[#0A8043]' },
+        { icon: Wrench, title: 'Parts', desc: 'Search Parts', path: '/inventory', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
+        { icon: Users, title: 'Customers', desc: 'Farms & contacts', path: '/customers', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
         { icon: FileText, title: 'All Jobs', desc: 'Full list', path: '/jobs', color: 'bg-orange-50 text-orange-600', mColor: 'bg-[#FFE6E6] text-[#DC3545]' },
     ];
 
