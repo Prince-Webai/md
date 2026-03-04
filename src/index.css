@@ -1,0 +1,185 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --delaval-blue: #1863DC;
+    --delaval-dark-blue: #124CA8;
+    --delaval-light-blue: #F0F6FF;
+    --delaval-accent: #FF6B00;
+    --success-green: #14A637;
+    --warning-yellow: #FFC107;
+    --error-red: #DC3545;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666;
+    --bg-light: #F8FAFB;
+    --border-color: #E0E6ED;
+    --white: #FFFFFF;
+    --shadow-sm: 0 2px 4px rgba(0, 81, 165, 0.08);
+    --shadow-md: 0 4px 12px rgba(0, 81, 165, 0.12);
+    --shadow-lg: 0 8px 24px rgba(0, 81, 165, 0.16);
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-primary);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Inter', sans-serif;
+}
+
+@layer components {
+    .btn {
+        @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200 flex items-center gap-2 text-sm min-h-[44px];
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--delaval-blue), var(--delaval-dark-blue));
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 81, 165, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 81, 165, 0.4);
+    }
+
+    .card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.75rem;
+        box-shadow: 0 2px 8px rgba(0, 81, 165, 0.08);
+        border: 1px solid rgba(0, 81, 165, 0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .stat-card {
+        @apply card relative overflow-hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 12px 32px rgba(0, 81, 165, 0.2);
+        border-color: var(--delaval-blue);
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--delaval-blue), var(--delaval-accent), var(--delaval-blue));
+        background-size: 200% 100%;
+        animation: gradientShift 3s ease infinite;
+    }
+}
+
+@keyframes gradientShift {
+
+    0%,
+    100% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+/* Modern Section Card with subtle glassmorphism */
+.section-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 81, 165, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 81, 165, 0.06);
+    transition: box-shadow 0.3s ease;
+}
+
+.section-card:hover {
+    box-shadow: 0 8px 32px rgba(0, 81, 165, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+/* Table row modern hover */
+table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+table tbody tr:hover {
+    background-color: rgba(0, 81, 165, 0.03) !important;
+}
+
+/* Modern form inputs */
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--delaval-blue) !important;
+    box-shadow: 0 0 0 3px rgba(0, 81, 165, 0.1) !important;
+}
+
+/* Button active press effect */
+.btn:active {
+    transform: scale(0.97) !important;
+}
+
+.btn-secondary {
+    @apply bg-white border border-slate-200 text-slate-700 hover:border-delaval-blue hover:text-delaval-blue;
+}
+
+/* Hide scrollbar for specific containers but keep functionality */
+.custom-scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+.custom-scrollbar-hide {
+    scrollbar-width: none;
+    /* Firefox */
+}
+
+/* Modern scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 81, 165, 0.15);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 81, 165, 0.3);
+}
+
+/* Fade-in animation for pages */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+main>div {
+    animation: fadeInUp 0.3s ease-out;
+}
