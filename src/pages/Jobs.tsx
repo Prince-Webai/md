@@ -400,7 +400,7 @@ const Jobs = () => {
                                 setModalItems([]);
                                 setIsModalOpen(true);
                             }}
-                            className="w-10 h-10 bg-[#1863DC] hover:bg-[#124CA8] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
+                            className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
                         >
                             <Plus size={20} />
                         </button>
@@ -450,7 +450,7 @@ const Jobs = () => {
                                     <div className="flex items-center gap-1.5">
                                         {job.status === 'Completed' && <><div className="w-1.5 h-1.5 rounded-full bg-[#14A637]"></div><span className="text-[10px] font-bold uppercase tracking-wider text-[#14A637]">COMPLETED</span></>}
                                         {job.status === 'In Progress' && <><div className="w-1.5 h-1.5 rounded-full bg-[#FF6B00]"></div><span className="text-[10px] font-bold uppercase tracking-wider text-[#FF6B00]">IN PROGRESS</span></>}
-                                        {job.status === 'Booked In' && <><div className="w-1.5 h-1.5 rounded-full bg-[#1863DC]"></div><span className="text-[10px] font-bold uppercase tracking-wider text-[#1863DC]">BOOKED IN</span></>}
+                                        {job.status === 'Booked In' && <><div className="w-1.5 h-1.5 rounded-full bg-[#0A8043]"></div><span className="text-[10px] font-bold uppercase tracking-wider text-[#0A8043]">BOOKED IN</span></>}
                                         {job.status === 'Waiting for Parts' && <><div className="w-1.5 h-1.5 rounded-full bg-[#EAB308]"></div><span className="text-[10px] font-bold uppercase tracking-wider text-[#EAB308]">WAITING FOR PARTS</span></>}
                                         {job.status === 'Closed' && <><div className="w-1.5 h-1.5 rounded-full bg-slate-400"></div><span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">CLOSED</span></>}
                                     </div>
@@ -460,7 +460,7 @@ const Jobs = () => {
                                     <p className="text-[13px] text-slate-500">{job.customers?.address || 'No address provided'}</p>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2 mb-4">
-                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[#F0F5FA] text-[#1863DC] text-[11px] font-bold tracking-wide">
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[#E6F4EA] text-[#0A8043] text-[11px] font-bold tracking-wide">
                                         VMS V300 {/* Mock Data matching design */}
                                     </span>
                                     <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-[11px] font-bold tracking-wide">
@@ -776,7 +776,7 @@ const Jobs = () => {
                                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Schedule</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                                        <div className="flex items-center gap-2 mb-2 text-[#1863DC]">
+                                        <div className="flex items-center gap-2 mb-2 text-[#0A8043]">
                                             <Calendar size={16} />
                                             <span className="font-bold text-sm">Date</span>
                                         </div>
@@ -848,7 +848,7 @@ const Jobs = () => {
                                     <button
                                         type="button"
                                         onClick={() => setIsAddingNewCustomer(!isAddingNewCustomer)}
-                                        className="text-[11px] font-bold text-[#1863DC] uppercase tracking-wider"
+                                        className="text-[11px] font-bold text-[#0A8043] uppercase tracking-wider"
                                     >
                                         {isAddingNewCustomer ? 'Select Existing' : 'Add New'}
                                     </button>
@@ -903,7 +903,7 @@ const Jobs = () => {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center pl-1">
                                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest">Parts & Labor</label>
-                                    <div className="text-[11px] font-bold text-[#1863DC] bg-[#F0F6FF] px-2 py-0.5 rounded-full">
+                                    <div className="text-[11px] font-bold text-[#0A8043] bg-[#E6F4EA] px-2 py-0.5 rounded-full">
                                         Total: €{modalItems.reduce((sum, i) => sum + (i.quantity * i.unit_price), 0).toFixed(2)}
                                     </div>
                                 </div>
@@ -968,7 +968,7 @@ const Jobs = () => {
                                                             setIsAddingCustom(false);
                                                         }
                                                     }}
-                                                    className="px-4 py-2 text-xs font-bold text-white bg-[#1863DC] rounded-lg"
+                                                    className="px-4 py-2 text-xs font-bold text-white bg-[#0A8043] rounded-lg"
                                                 >
                                                     Add Item
                                                 </button>
@@ -1000,7 +1000,7 @@ const Jobs = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setIsAddingCustom(true)}
-                                                className="w-full py-3 bg-[#F0F5FA] text-[#1863DC] rounded-xl text-sm font-bold active:scale-[0.98] transition-transform flex justify-center gap-2 items-center"
+                                                className="w-full py-3 bg-[#E6F4EA] text-[#0A8043] rounded-xl text-sm font-bold active:scale-[0.98] transition-transform flex justify-center gap-2 items-center"
                                             >
                                                 <FileText size={16} />
                                                 Add Custom / Labor
@@ -1032,7 +1032,7 @@ const Jobs = () => {
                         <button
                             type="submit"
                             form="mobile-job-form"
-                            className="w-full py-4 bg-[#1863DC] text-white rounded-[1.25rem] font-bold text-[15px] shadow-[0_8px_20px_rgba(0,81,165,0.25)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-[#0A8043] text-white rounded-[1.25rem] font-bold text-[15px] shadow-[0_8px_20px_rgba(0,81,165,0.25)] active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
                         >
                             {editingId ? 'Save Changes' : 'Create Job'}
                             <ArrowRight size={18} />

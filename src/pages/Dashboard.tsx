@@ -267,7 +267,7 @@ const Dashboard = () => {
                             <Link key={index} to={action.path} className="group relative bg-white rounded-xl p-6 shadow-sm border-2 border-transparent hover:border-delaval-blue transition-all hover:-translate-y-1 hover:shadow-lg overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-br from-delaval-light-blue to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                 <div className="relative z-10">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-delaval-blue bg-[#F0F6FF]`}>
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 text-delaval-blue bg-[#E6F4EA]`}>
                                         <Icon size={20} />
                                     </div>
                                     <div className="font-bold text-slate-900 mb-1">{action.title}</div>
@@ -318,7 +318,7 @@ const Dashboard = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-[#F0F6FF] text-[#1863DC] flex items-center justify-center font-bold text-xs group-hover:scale-110 transition-transform">
+                                                <div className="w-8 h-8 rounded-full bg-[#E6F4EA] text-[#0A8043] flex items-center justify-center font-bold text-xs group-hover:scale-110 transition-transform">
                                                     {job.customers?.name?.substring(0, 2).toUpperCase()}
                                                 </div>
                                                 <span className="font-medium text-slate-700">{job.customers?.name}</span>
@@ -350,13 +350,13 @@ const Dashboard = () => {
             <div className="block md:hidden pb-12 w-full max-w-[100vw] overflow-x-hidden text-[#1a1a1a]">
 
                 {/* Fixed App Header */}
-                <div className="bg-[#1863DC] text-white pt-10 pb-20 px-6 relative w-full">
+                <div className="bg-[#0A8043] text-white pt-10 pb-20 px-6 relative w-full">
                     <div
                         onClick={() => setIsNotificationsOpen(true)}
                         className="absolute top-10 right-6 opacity-80 backdrop-blur border border-white/20 rounded-full p-2 bg-white/10 z-10 w-9 h-9 flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
                     >
                         <Bell size={18} />
-                        {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[#1863DC]"></span>}
+                        {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[#0A8043]"></span>}
                     </div>
 
                     <p className="text-[#a0c5ea] text-xs font-semibold mb-1 uppercase tracking-wider opacity-90">{formattedDate}</p>
@@ -404,7 +404,7 @@ const Dashboard = () => {
                 <div className="px-5 w-full max-w-[400px] mx-auto">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xs uppercase font-bold text-slate-500 tracking-widest pl-1">Today's Jobs</h2>
-                        <Link to="/jobs" className="text-sm font-bold text-[#1863DC]">See all</Link>
+                        <Link to="/jobs" className="text-sm font-bold text-[#0A8043]">See all</Link>
                     </div>
 
                     <div className="space-y-3 pb-8">
@@ -422,7 +422,7 @@ const Dashboard = () => {
                                     <span className={`inline-flex whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide
                                         ${job.status === 'Completed' ? 'bg-[#E6F9F3] text-[#14A637]' :
                                             job.status === 'In Progress' ? 'bg-[#FFF3E6] text-[#FF6B00]' :
-                                                'bg-[#F0F6FF] text-[#1863DC]'}`}>
+                                                'bg-[#E6F4EA] text-[#0A8043]'}`}>
                                         {job.status.replace('_', ' ')}
                                     </span>
                                 </div>

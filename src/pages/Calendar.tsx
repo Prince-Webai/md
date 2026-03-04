@@ -157,7 +157,7 @@ const CalendarPage = () => {
                     </div>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="ml-auto sm:ml-0 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-delaval-blue to-[#124CA8] text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20 hover:-translate-y-0.5 transition-all"
+                        className="ml-auto sm:ml-0 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-delaval-blue to-[#065F30] text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20 hover:-translate-y-0.5 transition-all"
                     >
                         <Plus size={18} /> New Job
                     </button>
@@ -242,7 +242,7 @@ const CalendarPage = () => {
             <div className={`md:hidden ${mobileView === 'calendar' ? 'block' : 'hidden'}`}>
                 <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
                     {/* Month nav */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#124CA8] to-delaval-blue">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#065F30] to-delaval-blue">
                         <button onClick={prevMonth} className="p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/10">
                             <ChevronLeft size={20} />
                         </button>
@@ -326,7 +326,7 @@ const CalendarPage = () => {
             <div className="hidden md:grid lg:grid-cols-[1fr_340px] gap-6">
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#124CA8] to-delaval-blue">
+                    <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#065F30] to-delaval-blue">
                         <div className="flex items-center gap-3">
                             <button onClick={prevMonth} className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/80 hover:text-white">
                                 <ChevronLeft size={20} />
@@ -514,7 +514,7 @@ const CalendarPage = () => {
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
                         <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
-                        <button type="submit" className="px-6 py-2.5 bg-gradient-to-br from-delaval-blue to-[#124CA8] text-white rounded-lg font-bold shadow-lg shadow-blue-900/20">Create Job</button>
+                        <button type="submit" className="px-6 py-2.5 bg-gradient-to-br from-delaval-blue to-[#065F30] text-white rounded-lg font-bold shadow-lg shadow-blue-900/20">Create Job</button>
                     </div>
                 </form>
             </Modal>

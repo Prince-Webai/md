@@ -133,7 +133,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
                         {navSections.map((section, idx) => (
                             <div key={idx} className="mb-6 last:mb-0">
-                                <h3 className="text-xs uppercase tracking-widest text-[#1863DC]/60 font-bold mb-3 px-3">{section.title}</h3>
+                                <h3 className="text-xs uppercase tracking-widest text-[#0A8043]/60 font-bold mb-3 px-3">{section.title}</h3>
                                 <nav className="space-y-1">
                                     {section.items.map((item) => {
                                         const Icon = item.icon;
@@ -147,8 +147,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                                 className={`
                             flex items-center gap-3 px-3 py-3.5 rounded-xl font-medium transition-all duration-200
                             ${isActive
-                                                        ? 'bg-gradient-to-br from-[#1863DC] to-[#124CA8] text-white shadow-[0_4px_12px_rgba(0,81,165,0.3)] relative overflow-hidden pl-4'
-                                                        : 'text-[#1a1a1a] hover:bg-[#F0F6FF] hover:text-[#1863DC] hover:translate-x-1'
+                                                        ? 'bg-gradient-to-br from-[#0A8043] to-[#065F30] text-white shadow-[0_4px_12px_rgba(0,81,165,0.3)] relative overflow-hidden pl-4'
+                                                        : 'text-[#1a1a1a] hover:bg-[#E6F4EA] hover:text-[#0A8043] hover:translate-x-1'
                                                     }
                           `}
                                             >
@@ -193,7 +193,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <Link
                             key={item.path}
                             to={item.path}
-                            className={`flex flex-col items-center gap-1 transition-colors px-4 ${isActive ? 'text-[#1863DC]' : 'text-slate-400'}`}
+                            className={`flex flex-col items-center gap-1 transition-colors px-4 ${isActive ? 'text-[#0A8043]' : 'text-slate-400'}`}
                         >
                             <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
                             <span className="text-[10px] uppercase font-bold tracking-wider">{item.label}</span>

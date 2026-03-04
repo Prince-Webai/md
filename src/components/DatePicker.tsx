@@ -125,7 +125,7 @@ const DatePicker = ({ value, onChange, required, placeholder = 'Select date...' 
                 onClick={() => setIsOpen(!isOpen)}
                 className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg border transition-all text-left
                     ${isOpen
-                        ? 'border-[#1863DC] ring-2 ring-[#1863DC]/10 bg-white'
+                        ? 'border-[#0A8043] ring-2 ring-[#0A8043]/10 bg-white'
                         : 'border-slate-300 bg-white hover:border-slate-400'
                     }
                 `}
@@ -133,7 +133,7 @@ const DatePicker = ({ value, onChange, required, placeholder = 'Select date...' 
                 <span className={value ? 'text-slate-900 font-medium text-sm' : 'text-slate-400 text-sm'}>
                     {value ? formatDisplay(value) : placeholder}
                 </span>
-                <CalendarDays size={18} className={isOpen ? 'text-[#1863DC]' : 'text-slate-400'} />
+                <CalendarDays size={18} className={isOpen ? 'text-[#0A8043]' : 'text-slate-400'} />
             </button>
 
             {/* Portal-rendered Dropdown — renders at document body, never clipped by modal overflow */}
@@ -149,7 +149,7 @@ const DatePicker = ({ value, onChange, required, placeholder = 'Select date...' 
                     }}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#124CA8] to-[#1863DC]">
+                    <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#065F30] to-[#0A8043]">
                         <button type="button" onClick={prevMonth} className="p-1 text-white/70 hover:text-white rounded hover:bg-white/10 transition-colors">
                             <ChevronLeft size={18} />
                         </button>
@@ -181,9 +181,9 @@ const DatePicker = ({ value, onChange, required, placeholder = 'Select date...' 
                                     onClick={() => selectDate(day)}
                                     className={`w-9 h-9 mx-auto flex items-center justify-center rounded-lg text-sm font-medium transition-all
                                         ${isSelected
-                                            ? 'bg-[#1863DC] text-white shadow-md shadow-blue-900/20 scale-105'
+                                            ? 'bg-[#0A8043] text-white shadow-md shadow-blue-900/20 scale-105'
                                             : isToday
-                                                ? 'bg-blue-50 text-[#1863DC] font-bold ring-1 ring-[#1863DC]/30'
+                                                ? 'bg-blue-50 text-[#0A8043] font-bold ring-1 ring-[#0A8043]/30'
                                                 : 'text-slate-700 hover:bg-slate-100 active:bg-slate-200'
                                         }
                                     `}
@@ -199,7 +199,7 @@ const DatePicker = ({ value, onChange, required, placeholder = 'Select date...' 
                         <button type="button" onClick={clearDate} className="text-xs text-slate-400 hover:text-slate-600 font-medium transition-colors">
                             Clear
                         </button>
-                        <button type="button" onClick={selectToday} className="text-xs text-[#1863DC] hover:text-[#124CA8] font-bold transition-colors">
+                        <button type="button" onClick={selectToday} className="text-xs text-[#0A8043] hover:text-[#065F30] font-bold transition-colors">
                             Today
                         </button>
                     </div>

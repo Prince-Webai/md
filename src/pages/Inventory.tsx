@@ -267,7 +267,7 @@ const Inventory = () => {
                                     <div className="text-3xl font-bold text-slate-900 mb-1">{activeJobsCount}</div>
                                     <div className="text-sm font-medium text-slate-500">Active Jobs</div>
                                 </div>
-                                <div className="w-12 h-12 bg-[#F0F6FF] text-[#1863DC] rounded-xl flex items-center justify-center">
+                                <div className="w-12 h-12 bg-[#E6F4EA] text-[#0A8043] rounded-xl flex items-center justify-center">
                                     <Clock size={24} />
                                 </div>
                             </div>
@@ -448,7 +448,7 @@ const Inventory = () => {
                                 setNewCategoryName('');
                                 setIsModalOpen(true);
                             }}
-                            className="w-10 h-10 bg-[#1863DC] hover:bg-[#124CA8] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
+                            className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
                         >
                             <Plus size={20} />
                         </button>
@@ -509,7 +509,7 @@ const Inventory = () => {
 
                     {loading ? (
                         <div className="text-center py-12 text-slate-400 font-medium text-sm flex flex-col items-center">
-                            <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-[#1863DC] animate-spin mb-3"></div>
+                            <div className="w-8 h-8 rounded-full border-2 border-slate-200 border-t-[#0A8043] animate-spin mb-3"></div>
                             Loading catalog...
                         </div>
                     ) : filteredItems.length === 0 ? (

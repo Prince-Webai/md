@@ -100,7 +100,7 @@ const Login = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#F8FAFB] p-4 relative overflow-hidden">
             {/* Background Decoration */}
-            <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-br from-[#124CA8] to-[#0066CC] skew-y-[-6deg] origin-top-left translate-y-[-20%] z-0"></div>
+            <div className="absolute top-0 left-0 w-full h-[50vh] bg-gradient-to-br from-[#065F30] to-[#0066CC] skew-y-[-6deg] origin-top-left translate-y-[-20%] z-0"></div>
 
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden relative z-10 animate-in fade-in zoom-in duration-300">
                 <div className="p-8 pb-6 text-center">

@@ -345,7 +345,7 @@ const Customers = () => {
                         {/* Customer Header Card */}
                         <div className="section-card p-8">
                             <div className="flex flex-wrap items-start gap-8">
-                                <div className="w-20 h-20 bg-[#F0F6FF] text-[#1863DC] rounded-full flex items-center justify-center font-bold text-3xl shadow-inner">
+                                <div className="w-20 h-20 bg-[#E6F4EA] text-[#0A8043] rounded-full flex items-center justify-center font-bold text-3xl shadow-inner">
                                     {selectedCustomer.name.substring(0, 2).toUpperCase()}
                                 </div>
                                 <div className="flex-1 min-w-[250px]">
@@ -427,7 +427,7 @@ const Customers = () => {
                                         <div className="text-3xl font-bold font-display text-slate-900 mb-1">€{stats.totalRevenue.toLocaleString()}</div>
                                         <div className="text-sm font-medium text-slate-500">Total Revenue</div>
                                     </div>
-                                    <div className="w-12 h-12 bg-[#F0F6FF] text-[#1863DC] rounded-xl flex items-center justify-center">
+                                    <div className="w-12 h-12 bg-[#E6F4EA] text-[#0A8043] rounded-xl flex items-center justify-center">
                                         <Euro size={24} />
                                     </div>
                                 </div>
@@ -654,7 +654,7 @@ const Customers = () => {
                                                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6L5 8L9 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                             )}
                                         </div>
-                                        <div className="w-16 h-16 bg-[#F0F6FF] text-[#1863DC] rounded-full flex items-center justify-center font-bold text-2xl mb-4 group-hover:scale-110 transition-transform">
+                                        <div className="w-16 h-16 bg-[#E6F4EA] text-[#0A8043] rounded-full flex items-center justify-center font-bold text-2xl mb-4 group-hover:scale-110 transition-transform">
                                             {customer.name.substring(0, 2).toUpperCase()}
                                         </div>
                                         <h3 className="text-lg font-bold text-slate-900 mb-2">{customer.name}</h3>
@@ -722,18 +722,18 @@ const Customers = () => {
 
                         {/* Customer Profile Header */}
                         <div className="flex flex-col items-center text-center mb-6">
-                            <div className="w-[88px] h-[88px] bg-gradient-to-br from-[#F0F6FF] to-[#D0E2FF] text-[#1863DC] rounded-[2rem] flex items-center justify-center font-bold text-[32px] mb-4 shadow-[0_4px_20px_rgba(0,81,165,0.15)] ring-4 ring-white">
+                            <div className="w-[88px] h-[88px] bg-gradient-to-br from-[#E6F4EA] to-[#C1E7CD] text-[#0A8043] rounded-[2rem] flex items-center justify-center font-bold text-[32px] mb-4 shadow-[0_4px_20px_rgba(0,81,165,0.15)] ring-4 ring-white">
                                 {selectedCustomer.name.substring(0, 2).toUpperCase()}
                             </div>
                             <h2 className="text-[22px] font-bold text-slate-900 mb-1.5 leading-tight tracking-tight">{selectedCustomer.name}</h2>
                             <p className="text-[#64748B] text-sm mb-3 px-4 leading-relaxed">{selectedCustomer.address || 'No address provided'}</p>
-                            <a href={`tel:${selectedCustomer.phone}`} className="inline-flex items-center justify-center px-4 py-2 bg-slate-100 text-[#1863DC] rounded-full text-sm font-bold tracking-wide">
+                            <a href={`tel:${selectedCustomer.phone}`} className="inline-flex items-center justify-center px-4 py-2 bg-slate-100 text-[#0A8043] rounded-full text-sm font-bold tracking-wide">
                                 📞&nbsp;&nbsp;{selectedCustomer.phone || 'Add Phone'}
                             </a>
                         </div>
 
                         {/* Balance Banner */}
-                        <div className="bg-[#1863DC] rounded-2xl p-5 mb-6 text-white shadow-[0_8px_20px_rgba(0,81,165,0.2)] relative overflow-hidden">
+                        <div className="bg-[#0A8043] rounded-2xl p-5 mb-6 text-white shadow-[0_8px_20px_rgba(0,81,165,0.2)] relative overflow-hidden">
                             <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
                             <div className="text-white/80 text-[11px] font-bold uppercase tracking-widest mb-1 relative z-10">Outstanding Balance</div>
                             <div className="text-3xl font-black tracking-tight relative z-10">€{(selectedCustomer.account_balance || 0).toLocaleString()}</div>
@@ -742,7 +742,7 @@ const Customers = () => {
                         {/* Quick Actions Grid */}
                         <div className="grid grid-cols-2 gap-3 mb-8">
                             <Link to="/jobs" state={{ customerMode: true, prefillCustomer: selectedCustomer }} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
-                                <div className="w-10 h-10 rounded-full bg-[#F0F6FF] text-[#1863DC] flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-full bg-[#E6F4EA] text-[#0A8043] flex items-center justify-center">
                                     <Plus size={20} />
                                 </div>
                                 <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">New Job</span>
@@ -762,7 +762,7 @@ const Customers = () => {
                             </div>
                             <div className="bg-white rounded-[1.25rem] shadow-sm border border-slate-100 overflow-hidden">
                                 <div className="p-4 border-b border-slate-50 flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-[#F0F5FA] rounded-xl flex items-center justify-center text-[#1863DC]">
+                                    <div className="w-10 h-10 bg-[#E6F4EA] rounded-xl flex items-center justify-center text-[#0A8043]">
                                         <Wrench size={18} />
                                     </div>
                                     <div>
@@ -791,7 +791,7 @@ const Customers = () => {
                         <div className="mb-8">
                             <div className="flex items-center justify-between mb-3 px-1">
                                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Job History</h3>
-                                <Link to="/jobs" className="text-[11px] font-bold text-[#1863DC] uppercase tracking-wider">See All</Link>
+                                <Link to="/jobs" className="text-[11px] font-bold text-[#0A8043] uppercase tracking-wider">See All</Link>
                             </div>
                             <div className="bg-white rounded-[1.25rem] shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-50">
                                 {customerJobs.length === 0 ? (
@@ -807,7 +807,7 @@ const Customers = () => {
                                                 <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500">
                                                     <span>{new Date(job.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                    <span className={`uppercase tracking-wider ${job.status === 'completed' ? 'text-[#14A637]' : 'text-[#1863DC]'}`}>
+                                                    <span className={`uppercase tracking-wider ${job.status === 'completed' ? 'text-[#14A637]' : 'text-[#0A8043]'}`}>
                                                         {job.status.replace('_', ' ')}
                                                     </span>
                                                 </div>
@@ -833,7 +833,7 @@ const Customers = () => {
                                         setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
                                         setIsModalOpen(true);
                                     }}
-                                    className="w-10 h-10 bg-[#1863DC] hover:bg-[#124CA8] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
+                                    className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
                                 >
                                     <Plus size={20} />
                                 </button>
@@ -860,7 +860,7 @@ const Customers = () => {
                                     <div key={customer.id} onClick={() => setSelectedCustomer(customer)} className="bg-white border border-slate-100 rounded-[1.25rem] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.02)] active:scale-[0.99] transition-transform cursor-pointer">
                                         <div className="flex items-start justify-between mb-3">
                                             <div className="flex items-start gap-3">
-                                                <div className="w-10 h-10 shrink-0 bg-[#F0F6FF] text-[#1863DC] rounded-full flex items-center justify-center font-bold text-sm">
+                                                <div className="w-10 h-10 shrink-0 bg-[#E6F4EA] text-[#0A8043] rounded-full flex items-center justify-center font-bold text-sm">
                                                     {customer.name.substring(0, 2).toUpperCase()}
                                                 </div>
                                                 <div>
@@ -869,7 +869,7 @@ const Customers = () => {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <div className={`font-black text-[15px] ${(customer.account_balance || 0) > 0 ? 'text-[#1863DC]' : 'text-[#14A637]'}`}>
+                                                <div className={`font-black text-[15px] ${(customer.account_balance || 0) > 0 ? 'text-[#0A8043]' : 'text-[#14A637]'}`}>
                                                     €{(customer.account_balance || 0).toLocaleString()}
                                                 </div>
                                                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Balance</div>
@@ -877,14 +877,14 @@ const Customers = () => {
                                         </div>
 
                                         <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-50">
-                                            <span className="inline-flex items-center px-2 py-1 rounded bg-[#F0F5FA] text-[#1863DC] text-[10px] font-bold tracking-wide">
+                                            <span className="inline-flex items-center px-2 py-1 rounded bg-[#E6F4EA] text-[#0A8043] text-[10px] font-bold tracking-wide">
                                                 VMS V300 {/* Mock Equipment */}
                                             </span>
                                             <span className="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-600 text-[10px] font-bold tracking-wide">
                                                 3 jobs {/* Mock Data */}
                                             </span>
                                             {customer.phone && (
-                                                <span className="ml-auto text-[#1863DC] text-[11px] font-bold flex items-center gap-1">
+                                                <span className="ml-auto text-[#0A8043] text-[11px] font-bold flex items-center gap-1">
                                                     📞 {customer.phone}
                                                 </span>
                                             )}
