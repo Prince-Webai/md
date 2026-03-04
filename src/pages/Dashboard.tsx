@@ -174,8 +174,8 @@ const Dashboard = () => {
 
     const quickActions = [
         { icon: Plus, title: 'New Job', desc: 'Log a call-out', path: '/jobs', color: 'bg-blue-50 text-blue-600', mColor: 'bg-[#F0F6FF] text-[#1863DC]' },
-        { icon: Wrench, title: 'Parts', desc: 'Search Parts', path: '/inventory', color: 'bg-green-50 text-green-600', mColor: 'bg-[#FFF3E6] text-[#FF6B00]' },
-        { icon: Users, title: 'Customers', desc: 'Farms & contacts', path: '/customers', color: 'bg-delaval-light-blue text-delaval-blue', mColor: 'bg-[#E6F9F3] text-[#14A637]' },
+        { icon: Wrench, title: 'Parts', desc: 'Search Parts', path: '/inventory', color: 'bg-delaval-light-blue text-delaval-blue', mColor: 'bg-[#F0F6FF] text-[#1863DC]' },
+        { icon: Users, title: 'Customers', desc: 'Farms & contacts', path: '/customers', color: 'bg-delaval-light-blue text-delaval-blue', mColor: 'bg-[#F0F6FF] text-[#1863DC]' },
         { icon: FileText, title: 'All Jobs', desc: 'Full list', path: '/jobs', color: 'bg-orange-50 text-orange-600', mColor: 'bg-[#FFE6E6] text-[#DC3545]' },
     ];
 
