@@ -161,7 +161,7 @@ const Team = () => {
                         setNewEngineer({ name: '', email: '', phone: '', role: 'Engineer', status: 'active' });
                         setIsModalOpen(true);
                     }}
-                    className="flex items-center gap-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-blue-900/20"
+                    className="flex items-center gap-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-green-900/20"
                 >
                     <Plus size={20} /> Add Member
                 </button>
@@ -188,10 +188,10 @@ const Team = () => {
                         filteredEngineers.map(eng => (
                             <div key={eng.id} className="stat-card group relative hover:border-delaval-blue transition-colors">
                                 <div className="flex items-start justify-between mb-4">
-                                    <div className="w-12 h-12 bg-blue-50 text-delaval-blue rounded-full flex items-center justify-center font-bold text-xl">
+                                    <div className="w-12 h-12 bg-green-50 text-delaval-blue rounded-full flex items-center justify-center font-bold text-xl">
                                         {eng.name.substring(0, 2).toUpperCase()}
                                     </div>
-                                    <div className={`px-2 py-1 rounded-full text-xs font-semibold ${eng.role === 'Admin' ? 'bg-delaval-blue text-white' : 'bg-blue-100 text-blue-800'}`}>
+                                    <div className={`px-2 py-1 rounded-full text-xs font-semibold ${eng.role === 'Admin' ? 'bg-delaval-blue text-white' : 'bg-green-100 text-green-800'}`}>
                                         {eng.role}
                                     </div>
                                 </div>
@@ -208,7 +208,7 @@ const Team = () => {
                                 <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleEditClick(eng); }}
-                                        className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium text-slate-500 hover:text-delaval-blue hover:bg-blue-50 rounded-lg transition-all"
+                                        className="flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium text-slate-500 hover:text-delaval-blue hover:bg-green-50 rounded-lg transition-all"
                                     >
                                         <Pencil size={14} /> Edit
                                     </button>

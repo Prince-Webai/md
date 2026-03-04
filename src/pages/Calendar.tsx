@@ -88,7 +88,7 @@ const CalendarPage = () => {
     };
 
     const statusConfig: Record<string, { dot: string; bg: string; text: string; label: string }> = {
-        'Booked In': { dot: 'bg-blue-500', bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700', label: 'Booked In' },
+        'Booked In': { dot: 'bg-green-500', bg: 'bg-green-50 border-green-200', text: 'text-green-700', label: 'Booked In' },
         'In Progress': { dot: 'bg-amber-500', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', label: 'In Progress' },
         'Waiting for Parts': { dot: 'bg-yellow-500', bg: 'bg-yellow-50 border-yellow-200', text: 'text-yellow-700', label: 'Waiting for Parts' },
         'Ready to Continue': { dot: 'bg-purple-500', bg: 'bg-purple-50 border-purple-200', text: 'text-purple-700', label: 'Ready to Continue' },
@@ -157,7 +157,7 @@ const CalendarPage = () => {
                     </div>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="ml-auto sm:ml-0 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-delaval-blue to-[#065F30] text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20 hover:-translate-y-0.5 transition-all"
+                        className="ml-auto sm:ml-0 flex items-center gap-2 px-4 py-2.5 bg-gradient-to-br from-delaval-blue to-[#065F30] text-white rounded-xl text-sm font-bold shadow-lg shadow-green-900/20 hover:-translate-y-0.5 transition-all"
                     >
                         <Plus size={18} /> New Job
                     </button>
@@ -214,7 +214,7 @@ const CalendarPage = () => {
                                                 <div className={`w-2 h-2 rounded-full ${statusConfig[job.status]?.dot}`} />
                                                 <span className="font-bold text-sm text-slate-900">#{job.job_number}</span>
                                             </div>
-                                            <span className="text-xs font-semibold text-delaval-blue bg-blue-50 px-2 py-0.5 rounded-full">
+                                            <span className="text-xs font-semibold text-delaval-blue bg-green-50 px-2 py-0.5 rounded-full">
                                                 {job.date_scheduled ? formatDateLabel(job.date_scheduled) : 'No date'}
                                             </span>
                                         </div>
@@ -275,8 +275,8 @@ const CalendarPage = () => {
                                     key={day}
                                     onClick={() => setSelectedDate(dateStr)}
                                     className={`aspect-square flex flex-col items-center justify-center rounded-xl text-sm relative transition-all
-                                        ${isToday && !isSelected ? 'bg-blue-50 font-bold text-delaval-blue' : ''}
-                                        ${isSelected ? 'bg-delaval-blue text-white shadow-md shadow-blue-900/20 scale-105' : ''}
+                                        ${isToday && !isSelected ? 'bg-green-50 font-bold text-delaval-blue' : ''}
+                                        ${isSelected ? 'bg-delaval-blue text-white shadow-md shadow-green-900/20 scale-105' : ''}
                                         ${!isToday && !isSelected ? 'text-slate-700 hover:bg-slate-50 active:bg-slate-100' : ''}
                                     `}
                                 >
@@ -367,8 +367,8 @@ const CalendarPage = () => {
                                     key={day}
                                     onClick={() => setSelectedDate(dateStr)}
                                     className={`min-h-[110px] p-2 border-b border-r border-slate-100 cursor-pointer transition-all
-                                        ${isToday ? 'bg-blue-50/50' : 'hover:bg-slate-50/80'}
-                                        ${isSelected ? 'ring-2 ring-delaval-blue ring-inset bg-blue-50/40' : ''}
+                                        ${isToday ? 'bg-green-50/50' : 'hover:bg-slate-50/80'}
+                                        ${isSelected ? 'ring-2 ring-delaval-blue ring-inset bg-green-50/40' : ''}
                                     `}
                                 >
                                     <div className={`text-sm font-bold mb-1.5 w-7 h-7 flex items-center justify-center rounded-full
@@ -514,7 +514,7 @@ const CalendarPage = () => {
                     </div>
                     <div className="flex justify-end gap-3 pt-2">
                         <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
-                        <button type="submit" className="px-6 py-2.5 bg-gradient-to-br from-delaval-blue to-[#065F30] text-white rounded-lg font-bold shadow-lg shadow-blue-900/20">Create Job</button>
+                        <button type="submit" className="px-6 py-2.5 bg-gradient-to-br from-delaval-blue to-[#065F30] text-white rounded-lg font-bold shadow-lg shadow-green-900/20">Create Job</button>
                     </div>
                 </form>
             </Modal>

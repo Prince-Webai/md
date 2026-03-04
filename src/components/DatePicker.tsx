@@ -181,9 +181,9 @@ const DatePicker = ({ value, onChange, required, placeholder = 'Select date...' 
                                     onClick={() => selectDate(day)}
                                     className={`w-9 h-9 mx-auto flex items-center justify-center rounded-lg text-sm font-medium transition-all
                                         ${isSelected
-                                            ? 'bg-[#0A8043] text-white shadow-md shadow-blue-900/20 scale-105'
+                                            ? 'bg-[#0A8043] text-white shadow-md shadow-green-900/20 scale-105'
                                             : isToday
-                                                ? 'bg-blue-50 text-[#0A8043] font-bold ring-1 ring-[#0A8043]/30'
+                                                ? 'bg-green-50 text-[#0A8043] font-bold ring-1 ring-[#0A8043]/30'
                                                 : 'text-slate-700 hover:bg-slate-100 active:bg-slate-200'
                                         }
                                     `}

@@ -121,7 +121,7 @@ const SearchableSelect = ({
                                         handleSelect(opt.value);
                                     }}
                                     className={`px-4 py-2.5 text-sm flex items-center justify-between cursor-pointer transition-colors
-                                        ${opt.value === value ? 'bg-blue-50/50 text-delaval-blue font-bold' : 'text-slate-700 hover:bg-slate-50'}
+                                        ${opt.value === value ? 'bg-green-50/50 text-delaval-blue font-bold' : 'text-slate-700 hover:bg-slate-50'}
                                     `}
                                 >
                                     <span className="truncate">{opt.label}</span>
@@ -137,7 +137,7 @@ const SearchableSelect = ({
                                             e.stopPropagation();
                                             handleCustomSubmit();
                                         }}
-                                        className="text-xs font-bold text-delaval-blue bg-blue-50 px-4 py-3 rounded-xl hover:bg-blue-100 border border-blue-200 w-full transition-all"
+                                        className="text-xs font-bold text-delaval-blue bg-green-50 px-4 py-3 rounded-xl hover:bg-green-100 border border-green-200 w-full transition-all"
                                     >
                                         Use custom: "{searchTerm}"
                                     </button>

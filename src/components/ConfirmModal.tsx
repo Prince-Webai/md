@@ -35,7 +35,7 @@ const ConfirmModal = ({
                 {/* Header */}
                 <div className={`px-6 py-4 border-b flex items-center justify-between ${isDestructive ? 'bg-red-50 border-red-100' : 'bg-white border-slate-100'}`}>
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDestructive ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDestructive ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
                             <AlertTriangle size={20} strokeWidth={2.5} />
                         </div>
                         <h3 className={`text-lg font-bold ${isDestructive ? 'text-red-900' : 'text-slate-900'}`}>
@@ -71,7 +71,7 @@ const ConfirmModal = ({
                         onClick={onConfirm}
                         disabled={isLoading}
                         className={`
-                            px-4 py-2 text-white font-medium rounded-lg shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2
+                            px-4 py-2 text-white font-medium rounded-lg shadow-lg shadow-green-500/20 transition-all flex items-center gap-2
                             ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:-translate-y-0.5'}
                             ${isDestructive
                                 ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20'

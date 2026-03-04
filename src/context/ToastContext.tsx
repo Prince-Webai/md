@@ -54,13 +54,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                             ${toast.type === 'success' ? 'border-green-500' :
                                 toast.type === 'error' ? 'border-red-500' :
                                     toast.type === 'warning' ? 'border-orange-500' :
-                                        'border-blue-500'}
+                                        'border-green-500'}
                         `}
                     >
                         <div className={`mt-0.5 ${toast.type === 'success' ? 'text-green-500' :
                             toast.type === 'error' ? 'text-red-500' :
                                 toast.type === 'warning' ? 'text-orange-500' :
-                                    'text-blue-500'
+                                    'text-green-500'
                             }`}>
                             {toast.type === 'success' && <CheckCircle size={20} />}
                             {toast.type === 'error' && <AlertCircle size={20} />}

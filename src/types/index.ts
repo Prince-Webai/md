@@ -42,6 +42,12 @@ export interface Job {
     service_type?: string;
     engineer_name?: string;
     notes?: string;
+
+    // Timer fields
+    timer_status?: 'stopped' | 'running' | 'paused';
+    timer_started_at?: string;
+    total_hours_worked?: number;
+
     // Joins
     customers?: Customer;
     job_items?: JobItem[];

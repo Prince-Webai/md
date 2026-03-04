@@ -120,7 +120,7 @@ const Settings = () => {
                 {/* User Profile */}
                 <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 space-y-6 lg:col-span-2">
                     <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                        <div className="p-2 bg-green-50 text-green-600 rounded-lg">
                             <User size={20} />
                         </div>
                         <h2 className="text-xl font-bold text-slate-800">User Profile</h2>
@@ -148,7 +148,7 @@ const Settings = () => {
                         {/* Company Details */}
                         <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 space-y-6">
                             <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                <div className="p-2 bg-green-50 text-green-600 rounded-lg">
                                     <Building size={20} />
                                 </div>
                                 <h2 className="text-xl font-bold text-slate-800">Company Information</h2>

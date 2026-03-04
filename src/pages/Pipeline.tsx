@@ -34,8 +34,8 @@ const COLUMNS = [
     title: "In Progress",
     icon: Clock,
     color: "text-delaval-blue",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
+    bg: "bg-green-50",
+    border: "border-green-200",
   },
   {
     id: "Waiting for Parts",
@@ -250,7 +250,7 @@ const Pipeline = () => {
             max="100"
             value={scrollProgress}
             onChange={handleSliderChange}
-            className="flex-1 w-full h-2 bg-blue-100 rounded-lg appearance-none cursor-pointer accent-delaval-blue hover:accent-blue-700 transition-all"
+            className="flex-1 w-full h-2 bg-green-100 rounded-lg appearance-none cursor-pointer accent-delaval-blue hover:accent-green-700 transition-all"
           />
         </div>
       )}
@@ -285,7 +285,7 @@ const Pipeline = () => {
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={`flex-1 rounded-2xl p-3 border-2 border-dashed transition-colors duration-200 flex flex-col ${snapshot.isDraggingOver
-                        ? "border-delaval-blue bg-blue-50/50"
+                        ? "border-delaval-blue bg-green-50/50"
                         : "border-transparent bg-slate-50"
                         }`}
                     >

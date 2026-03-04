@@ -378,7 +378,7 @@ const Customers = () => {
                                     </div>
                                     <div className="flex gap-3">
                                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Active Account</span>
-                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">Terms: {selectedCustomer.payment_terms}</span>
+                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Terms: {selectedCustomer.payment_terms}</span>
                                     </div>
                                 </div>
                                 <div className="text-right flex flex-col items-end gap-2">
@@ -497,7 +497,7 @@ const Customers = () => {
                                                             <td className="px-6 py-4">
                                                                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                                                                 ${job.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                                                        job.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                                                        job.status === 'in_progress' ? 'bg-green-100 text-green-800' :
                                                                             job.status === 'cancelled' ? 'bg-red-100 text-red-800' :
                                                                                 'bg-slate-100 text-slate-600'}`}>
                                                                     {job.status}
@@ -608,7 +608,7 @@ const Customers = () => {
                                         setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
                                         setIsModalOpen(true);
                                     }}
-                                    className="flex items-center gap-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                                    className="flex items-center gap-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-green-900/20 active:scale-95"
                                 >
                                     <Plus size={20} />
                                     Add Customer

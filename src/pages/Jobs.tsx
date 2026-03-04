@@ -216,7 +216,7 @@ const Jobs = () => {
             case 'Waiting for Parts':
                 return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Waiting for Parts</span>;
             case 'Booked In':
-                return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Booked In</span>;
+                return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Booked In</span>;
             default:
                 return <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{status}</span>;
         }
@@ -269,7 +269,7 @@ const Jobs = () => {
                                 });
                                 setModalItems([]);
                                 setIsModalOpen(true);
-                            }} className="btn btn-primary text-sm shadow-md shadow-blue-900/10">
+                            }} className="btn btn-primary text-sm shadow-md shadow-green-900/10">
                                 + New Job
                             </button>
                         </div>
@@ -346,14 +346,14 @@ const Jobs = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex gap-2">
-                                                    <Link to={`/jobs/${job.id}`} className="p-2 text-slate-400 hover:text-delaval-blue hover:bg-blue-50 rounded-lg transition-colors inline-block" title="View Details">
+                                                    <Link to={`/jobs/${job.id}`} className="p-2 text-slate-400 hover:text-delaval-blue hover:bg-green-50 rounded-lg transition-colors inline-block" title="View Details">
                                                         <FileText size={18} />
                                                     </Link>
 
 
                                                     <button
                                                         onClick={() => handleEditClick(job)}
-                                                        className="p-2 text-slate-400 hover:text-delaval-blue hover:bg-blue-50 rounded-lg transition-colors"
+                                                        className="p-2 text-slate-400 hover:text-delaval-blue hover:bg-green-50 rounded-lg transition-colors"
                                                         title="Edit Job"
                                                     >
                                                         <Pencil size={18} />
@@ -500,7 +500,7 @@ const Jobs = () => {
                                 <button
                                     type="button"
                                     onClick={() => setIsAddingNewCustomer(!isAddingNewCustomer)}
-                                    className="text-sm font-bold text-delaval-blue hover:text-blue-800 transition-colors"
+                                    className="text-sm font-bold text-delaval-blue hover:text-green-800 transition-colors"
                                 >
                                     {isAddingNewCustomer ? 'Select Existing Customer' : '+ Add New Customer'}
                                 </button>
@@ -610,7 +610,7 @@ const Jobs = () => {
                         <div className="bg-white p-4 rounded-xl border border-slate-100">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-bold text-slate-900">Parts & Labor</h3>
-                                <div className="text-sm font-bold text-delaval-blue bg-blue-50 px-3 py-1 rounded-full">
+                                <div className="text-sm font-bold text-delaval-blue bg-green-50 px-3 py-1 rounded-full">
                                     Total: €{modalItems.reduce((sum, i) => sum + (i.quantity * i.unit_price), 0).toFixed(2)}
                                 </div>
                             </div>
@@ -692,7 +692,7 @@ const Jobs = () => {
                                                     setIsAddingCustom(false);
                                                 }
                                             }}
-                                            className="px-3 py-1.5 text-sm font-medium text-white bg-delaval-blue hover:bg-blue-700 rounded-md transition-colors"
+                                            className="px-3 py-1.5 text-sm font-medium text-white bg-delaval-blue hover:bg-green-700 rounded-md transition-colors"
                                         >
                                             Add Custom Line
                                         </button>
@@ -744,7 +744,7 @@ const Jobs = () => {
 
                         <div className="pt-4 flex justify-end gap-3">
                             <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
-                            <button type="submit" className="px-6 py-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white rounded-lg font-bold shadow-lg shadow-blue-900/10">
+                            <button type="submit" className="px-6 py-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white rounded-lg font-bold shadow-lg shadow-green-900/10">
                                 {editingId ? 'Save Changes' : 'Create Job'}
                             </button>
                         </div>

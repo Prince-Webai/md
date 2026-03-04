@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle } from 'lucide-react';
 import SearchableSelect from '../components/SearchableSelect';
 import { supabase } from '../lib/supabase';
 import { Job, JobItem, InventoryItem } from '../types';
@@ -17,6 +17,83 @@ const JobDetails = () => {
         unit_price: 0,
         type: 'part' as 'part' | 'labor'
     });
+
+    const [timerStatus, setTimerStatus] = useState<'stopped' | 'running' | 'paused'>('stopped');
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+    // Refresh timer logic when job updates
+    useEffect(() => {
+        if (job) {
+            setTimerStatus(job.timer_status || 'stopped');
+            if (job.timer_status === 'running' && job.timer_started_at) {
+                const start = new Date(job.timer_started_at).getTime();
+                const now = new Date().getTime();
+                setElapsedSeconds(Math.floor((now - start) / 1000));
+            } else {
+                setElapsedSeconds(0);
+            }
+        }
+    }, [job]);
+
+    // Live timer ticking
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (timerStatus === 'running') {
+            interval = setInterval(() => {
+                setElapsedSeconds(prev => prev + 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [timerStatus]);
+
+    const formatTime = (totalSeconds: number) => {
+        const totalHoursSoFar = (job?.total_hours_worked || 0) + (totalSeconds / 3600);
+        const hrs = Math.floor(totalHoursSoFar);
+        const mins = Math.floor((totalHoursSoFar - hrs) * 60);
+        const secs = Math.floor(((totalHoursSoFar - hrs) * 60 - mins) * 60);
+        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const handleStartTimer = async () => {
+        if (!job) return;
+        const now = new Date().toISOString();
+        const { error } = await supabase.from('jobs').update({ timer_status: 'running', timer_started_at: now }).eq('id', job.id);
+        if (!error) {
+            setJob({ ...job, timer_status: 'running', timer_started_at: now });
+        }
+    };
+
+    const handlePauseTimer = async () => {
+        if (!job || !job.timer_started_at) return;
+        const end = new Date();
+        const start = new Date(job.timer_started_at);
+        const hoursThisSession = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+        const newTotalHours = (job.total_hours_worked || 0) + hoursThisSession;
+
+        // Auto-log to labour_logs
+        await supabase.from('labour_logs').insert([{
+            job_id: job.id,
+            mechanic_id: 'auto_timer',
+            start_time: job.timer_started_at,
+            end_time: end.toISOString(),
+            duration_minutes: Math.round(hoursThisSession * 60)
+        }]);
+
+        await supabase.from('jobs').update({ timer_status: 'paused', timer_started_at: null, total_hours_worked: newTotalHours }).eq('id', job.id);
+
+        setJob({ ...job, timer_status: 'paused', timer_started_at: undefined, total_hours_worked: newTotalHours });
+    };
+
+    const handleCompleteJob = async () => {
+        if (!job) return;
+        if (timerStatus === 'running') {
+            await handlePauseTimer();
+        }
+        const { error } = await supabase.from('jobs').update({ status: 'Completed', timer_status: 'stopped' }).eq('id', job.id);
+        if (!error) {
+            setJob(prev => prev ? { ...prev, status: 'Completed', timer_status: 'stopped' } : null);
+        }
+    };
 
     useEffect(() => {
         if (id) {
@@ -216,8 +293,35 @@ const JobDetails = () => {
 
                     <div className="space-y-6">
                         <div className="section-card p-6">
-                            <h2 className="text-lg font-bold mb-4">Job Details</h2>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-lg font-bold">Job Details</h2>
+                                <div className={`text-xl font-bold font-mono px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm border ${timerStatus === 'running' ? 'bg-[#1a1a1a] text-[#E6F4EA] border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                                    <Clock size={16} className={timerStatus === 'running' ? 'animate-pulse text-[#0A8043]' : ''} />
+                                    {formatTime(timerStatus === 'running' ? elapsedSeconds : 0)}
+                                </div>
+                            </div>
                             <div className="space-y-4">
+                                {/* Timer Controls */}
+                                {job.status !== 'Completed' && (
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between gap-3">
+                                        <div className="flex-1">
+                                            {timerStatus !== 'running' ? (
+                                                <button onClick={handleStartTimer} className="w-full flex justify-center items-center gap-2 bg-[#E6F4EA] text-[#0A8043] hover:bg-[#C1E7CD] py-2.5 rounded-lg font-bold transition-all shadow-sm border border-[#0A8043]/20">
+                                                    <Play size={18} /> Start Timer
+                                                </button>
+                                            ) : (
+                                                <button onClick={handlePauseTimer} className="w-full flex justify-center items-center gap-2 bg-[#FFC107] text-slate-900 hover:bg-[#E0A800] py-2.5 rounded-lg font-bold transition-all shadow-sm">
+                                                    <Pause size={18} /> Pause Timer
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <button onClick={handleCompleteJob} className="w-full flex justify-center items-center gap-2 bg-[#0A8043] text-white hover:bg-[#065F30] py-2.5 rounded-lg font-bold transition-all shadow-sm">
+                                                <CheckCircle size={18} /> Complete Job
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-medium text-slate-500 mb-2">Status</label>
                                     {job.status === 'Completed' ? (
@@ -398,9 +502,19 @@ const JobDetails = () => {
                                 </div>
                                 {/* Actions */}
                                 {job.status !== 'Completed' && (
-                                    <div className="mt-6">
-                                        <button className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-green-900/10">
-                                            Mark Done
+                                    <div className="mt-6 space-y-3">
+                                        {timerStatus !== 'running' ? (
+                                            <button onClick={handleStartTimer} className="w-full flex items-center justify-center gap-2 bg-[#E6F4EA] text-[#0A8043] border border-[#0A8043]/20 py-3 rounded-xl font-bold text-sm shadow-sm transition-colors">
+                                                <Play size={18} /> Start Timer
+                                            </button>
+                                        ) : (
+                                            <button onClick={handlePauseTimer} className="w-full flex items-center justify-center gap-2 bg-[#FFC107] text-slate-900 py-3 rounded-xl font-bold text-sm shadow-sm transition-colors">
+                                                <Pause size={18} /> Pause Timer
+                                            </button>
+                                        )}
+
+                                        <button onClick={handleCompleteJob} className="w-full flex items-center justify-center gap-2 bg-[#0A8043] text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-[#0A8043]/10">
+                                            <CheckCircle size={18} /> Complete Job
                                         </button>
                                     </div>
                                 )}

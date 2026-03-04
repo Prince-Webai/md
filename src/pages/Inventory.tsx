@@ -203,12 +203,12 @@ const Inventory = () => {
                     {activeTab === 'inventory' ? (
                         <div className="flex gap-2">
                             <button className="btn btn-secondary">Import CSV</button>
-                            <button onClick={() => setIsModalOpen(true)} className="btn btn-primary shadow-lg shadow-blue-900/20">
+                            <button onClick={() => setIsModalOpen(true)} className="btn btn-primary shadow-lg shadow-green-900/20">
                                 <Plus size={20} className="mr-2" /> Add Part
                             </button>
                         </div>
                     ) : (
-                        <button className="btn btn-primary shadow-lg shadow-blue-900/20">
+                        <button className="btn btn-primary shadow-lg shadow-green-900/20">
                             <span>🎯</span> <span className="ml-2">Allocate Parts</span>
                         </button>
                     )}

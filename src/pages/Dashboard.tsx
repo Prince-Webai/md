@@ -331,7 +331,7 @@ const Dashboard = () => {
                                             <span className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                                                                     ${job.status === 'Completed' ? 'bg-green-100 text-green-800' :
                                                     job.status === 'In Progress' ? 'bg-orange-100 text-orange-800' :
-                                                        'bg-blue-100 text-blue-800'}`}>
+                                                        'bg-green-100 text-green-800'}`}>
                                                 {job.status.replace('_', ' ')}
                                             </span>
                                         </td>
@@ -466,7 +466,7 @@ const Dashboard = () => {
                                         <div key={notif.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex gap-3 items-start">
                                             <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notif.type === 'error' ? 'bg-red-50 text-red-600' :
                                                 notif.type === 'warning' ? 'bg-amber-50 text-amber-600' :
-                                                    'bg-blue-50 text-blue-600'
+                                                    'bg-green-50 text-green-600'
                                                 }`}>
                                                 {notif.type === 'error' && <AlertCircle size={16} />}
                                                 {notif.type === 'warning' && <Package size={16} />}

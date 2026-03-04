@@ -87,7 +87,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => navigate('/settings')}
-                            className="hidden md:flex p-2 text-slate-400 hover:text-delaval-blue hover:bg-blue-50 rounded-full transition-colors"
+                            className="hidden md:flex p-2 text-slate-400 hover:text-delaval-blue hover:bg-green-50 rounded-full transition-colors"
                             title="Settings"
                         >
                             <SettingsIcon size={20} />
