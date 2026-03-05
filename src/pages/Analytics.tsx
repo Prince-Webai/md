@@ -10,7 +10,7 @@ const Analytics = () => {
         topService: 'N/A',
         partsUsed: 0,
         jobTrend: [],
-        serviceDist: [],
+        pipelineDist: [],
         topParts: []
     });
     const [loading, setLoading] = useState(true);
@@ -30,14 +30,22 @@ const Analytics = () => {
             const completedJobs = jobs.filter((j: any) => j.status === 'Completed').length;
             const completionRate = jobs.length > 0 ? Math.round((completedJobs / jobs.length) * 100) : 0;
 
-            // 2. Service Type Distribution
+            // 2. Pipeline Status Distribution
+            const statusCounts: any = {};
+            jobs.forEach((j: any) => {
+                const status = j.status || 'Booked In';
+                statusCounts[status] = (statusCounts[status] || 0) + 1;
+            });
+            const pipelineDist = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+
+            // Keeping service mix for the "Top Service" metric only
             const serviceCounts: any = {};
             jobs.forEach((j: any) => {
                 const type = j.service_type || 'General';
                 serviceCounts[type] = (serviceCounts[type] || 0) + 1;
             });
-            const serviceDist = Object.entries(serviceCounts).map(([name, value]) => ({ name, value }));
-            const topService = serviceDist.sort((a: any, b: any) => b.value - a.value)[0]?.name || 'N/A';
+            const serviceMix = Object.entries(serviceCounts).map(([name, value]) => ({ name, value }));
+            const topService = serviceMix.sort((a: any, b: any) => b.value - a.value)[0]?.name || 'N/A';
 
             // 3. Parts Used Total
             const totalParts = items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
@@ -62,7 +70,7 @@ const Analytics = () => {
                 topService,
                 partsUsed: totalParts,
                 jobTrend: chartDataPoints,
-                serviceDist,
+                pipelineDist,
                 topParts
             });
         } catch (error) {
@@ -178,25 +186,25 @@ const Analytics = () => {
                     </div>
                 </div>
 
-                {/* Service Mix */}
+                {/* Pipeline Status */}
                 <div className="section-card p-8">
-                    <h2 className="text-lg font-black text-slate-900 mb-1">Service Mix</h2>
-                    <p className="text-sm font-medium text-slate-400 mb-6">Distribution by service type</p>
+                    <h2 className="text-lg font-black text-slate-900 mb-1">Pipeline Status</h2>
+                    <p className="text-sm font-medium text-slate-400 mb-6">Distribution by job stage</p>
                     <div className="h-[250px] w-full relative">
                         {loading ? (
                             <div className="h-full flex items-center justify-center text-slate-400 font-medium">Categorizing...</div>
-                        ) : stats.serviceDist.length > 0 ? (
+                        ) : stats.pipelineDist.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
-                                        data={stats.serviceDist}
+                                        data={stats.pipelineDist}
                                         innerRadius={60}
                                         outerRadius={80}
                                         paddingAngle={5}
                                         dataKey="value"
                                         animationBegin={200}
                                     >
-                                        {stats.serviceDist.map((entry: any, index: number) => (
+                                        {stats.pipelineDist.map((entry: any, index: number) => (
                                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                         ))}
                                     </Pie>
@@ -217,7 +225,7 @@ const Analytics = () => {
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-400 font-medium text-sm">No distribution data</div>
                         )}
-                        {!loading && stats.serviceDist.length > 0 && (
+                        {!loading && stats.pipelineDist.length > 0 && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                 <span className="text-2xl font-black text-slate-900">{stats.totalJobs}</span>
                                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Jobs</span>
@@ -225,7 +233,7 @@ const Analytics = () => {
                         )}
                     </div>
                     <div className="space-y-3 mt-4">
-                        {stats.serviceDist.slice(0, 3).map((item: any, idx: number) => (
+                        {stats.pipelineDist.slice(0, 4).map((item: any, idx: number) => (
                             <div key={item.name} className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></div>

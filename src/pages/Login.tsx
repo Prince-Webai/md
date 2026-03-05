@@ -33,7 +33,7 @@ const Login = () => {
                 if (dbError) throw new Error('Database error saving OTP. Did you run the SQL script?');
 
                 // 3. Trigger user's Webhook
-                const webhookResponse = await fetch('https://n8n.srv990376.hstgr.cloud/webhook/2e7c0919-142c-4e6f-8a04-4b8ec1a8c147', {
+                const webhookResponse = await fetch('https://n8n.srv990376.hstgr.cloud/webhook/21f928ac-b128-4074-90f1-a7b1fb093e00', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email.toLowerCase(), otp: generatedOtp })
