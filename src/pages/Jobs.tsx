@@ -277,7 +277,7 @@ const Jobs = () => {
 
                     <div className="border-b border-slate-200 px-6">
                         <div className="flex gap-6 overflow-x-auto">
-                            {['all', 'Booked In', 'In Progress', 'Completed'].map((tab) => (
+                            {['all', 'Booked In', 'In Progress', 'Waiting for Parts', 'Ready to Continue', 'Ready for Collection', 'Completed'].map((tab) => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -422,7 +422,7 @@ const Jobs = () => {
                 {/* Status Tabs Slider - Sticky below header */}
                 <div className="sticky top-[146px] z-10 bg-[#F8FAFB]/95 backdrop-blur-sm pt-4 pb-3 border-b border-slate-100/50">
                     <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar px-5">
-                        {['all', 'Booked In', 'In Progress', 'Completed'].map((tab) => (
+                        {['all', 'Booked In', 'In Progress', 'Waiting for Parts', 'Ready to Continue', 'Ready for Collection', 'Completed'].map((tab) => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
