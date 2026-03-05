@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, supabaseAdmin } from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 import { ArrowRight, Loader2, Mail, Lock, Key } from 'lucide-react';
-import logoImg from '../assets/md_bruke_logo.png';
+import logoImg from '../assets/md_burke_logo.png';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -104,14 +104,14 @@ const Login = () => {
 
             <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden relative z-10 animate-in fade-in zoom-in duration-300">
                 <div className="p-8 pb-6 text-center">
-                    <img src={logoImg} alt="MD Bruke" className="h-[168px] w-auto mx-auto mb-4 mix-blend-multiply" />
+                    <img src={logoImg} alt="MD Burke" className="h-[168px] w-auto mx-auto mb-4 mix-blend-multiply" />
                     <h1 className="text-2xl font-bold font-display text-slate-900">
                         {view === 'login' && 'Welcome Back'}
                         {view === 'forgot_password' && 'Reset Password'}
                         {view === 'verify_otp' && 'Enter Verification Code'}
                     </h1>
                     <p className="text-slate-500 mt-2">
-                        {view === 'login' && 'Sign in to MD Bruke Workshop Management'}
+                        {view === 'login' && 'Sign in to MD Burke Workshop Management'}
                         {view === 'forgot_password' && 'Enter your email to receive an OTP code'}
                         {view === 'verify_otp' && 'Check your email for the 6-digit OTP code'}
                     </p>

@@ -173,10 +173,12 @@ const Dashboard = () => {
     ];
 
     const quickActions = [
-        { icon: Plus, title: 'New Job', desc: 'Log a call-out', path: '/jobs', color: 'bg-delaval-light-blue text-delaval-blue', mColor: 'bg-[#E6F4EA] text-[#0A8043]' },
-        { icon: Wrench, title: 'Parts', desc: 'Search Parts', path: '/inventory', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
-        { icon: Users, title: 'Customers', desc: 'Farms & contacts', path: '/customers', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
+        { icon: Plus, title: 'New Job', desc: 'Log a call-out', path: '/jobs', color: 'bg-green-50 text-green-600', mColor: 'bg-[#E6F4EA] text-[#0A8043]' },
+        { icon: Calendar, title: 'Calendar', desc: 'Schedule', path: '/calendar', color: 'bg-green-50 text-green-600', mColor: 'bg-[#E6F4EA] text-[#0A8043]' },
+        { icon: Wrench, title: 'Parts', desc: 'Inventory', path: '/inventory', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
+        { icon: Users, title: 'Customers', desc: 'Farms', path: '/customers', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
         { icon: FileText, title: 'All Jobs', desc: 'Full list', path: '/jobs', color: 'bg-orange-50 text-orange-600', mColor: 'bg-[#FFE6E6] text-[#DC3545]' },
+        { icon: Users, title: 'Team', desc: 'Engineers', path: '/team', color: 'bg-teal-50 text-teal-600', mColor: 'bg-[#E6FFFA] text-[#0D9488]' },
     ];
 
     // Format date for mobile header
@@ -363,7 +365,7 @@ const Dashboard = () => {
                     <h1 className="text-2xl font-bold mb-1 tracking-tight">
                         Good morning, {(user?.user_metadata?.name || user?.email?.split('@')[0])?.split(' ')[0] || 'Seán'} 👋
                     </h1>
-                    <p className="text-[#a0c5ea] text-sm font-medium">MD Bruke</p>
+                    <p className="text-[#a0c5ea] text-sm font-medium">MD Burke</p>
                 </div>
 
                 {/* Overlapping Stats Bar */}

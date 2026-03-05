@@ -12,7 +12,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user] = useState({
         id: 1,
-        email: 'admin@mdbruke.com',
+        email: 'admin@mdburke.com',
         user_metadata: {
             name: 'Admin User',
             role: 'Admin'

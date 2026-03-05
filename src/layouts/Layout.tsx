@@ -3,7 +3,7 @@ import { Menu, LayoutDashboard, Wrench, Users, Package, FileText, LogOut, User, 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../context/AuthContext';
-import logoImg from '../assets/md_bruke_logo.png';
+import logoImg from '../assets/md_burke_logo.png';
 
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -78,7 +78,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     <div className="flex items-center">
                         <img
                             src={logoImg}
-                            alt="MD Bruke"
+                            alt="MD Burke"
                             className="h-[65px] w-auto scale-[1.95] origin-left mix-blend-multiply transition-transform duration-300 hover:scale-[2]"
                         />
                     </div>
