@@ -169,6 +169,15 @@ const Dashboard = () => {
             change: `${stats.lowStockItems} items low stock`,
             changeType: stats.lowStockItems > 0 ? 'negative' : 'positive',
             link: '/inventory'
+        },
+        {
+            label: 'Completed Today',
+            value: stats.completedToday,
+            icon: FileText,
+            color: 'bg-[#F1F5F9] text-[#334155]',
+            change: 'Jobs finished today',
+            changeType: 'positive',
+            link: '/jobs'
         }
     ];
 
@@ -178,7 +187,6 @@ const Dashboard = () => {
         { icon: Wrench, title: 'Parts', desc: 'Inventory', path: '/inventory', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
         { icon: Users, title: 'Customers', desc: 'Clients', path: '/customers', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
         { icon: FileText, title: 'All Jobs', desc: 'Full list', path: '/jobs', color: 'bg-orange-50 text-orange-600', mColor: 'bg-[#FFE6E6] text-[#DC3545]' },
-        { icon: Users, title: 'Team', desc: 'Engineers', path: '/team', color: 'bg-teal-50 text-teal-600', mColor: 'bg-[#E6FFFA] text-[#0D9488]' },
     ];
 
     // Format date for mobile header
@@ -236,7 +244,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {statCards.map((stat, index) => {
                         const Icon = stat.icon;
                         return (

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Search, Plus, Trash2, ArrowLeft, Eye, Wrench, FileText, Briefcase, Euro, Package, Download, Upload } from 'lucide-react';
+import { Search, Plus, Trash2, ArrowLeft, Eye, Wrench, FileText, Briefcase, Euro, Package, Download, Upload, CheckCircle, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Customer } from '../types';
@@ -383,9 +383,9 @@ const Customers = () => {
                                 </div>
                                 <div className="text-right flex flex-col items-end gap-2">
                                     <div>
-                                        <div className="text-sm text-slate-500 mb-1">Account Balance</div>
-                                        <div className={`text-4xl font-extrabold mb-4 ${(selectedCustomer.account_balance || 0) > 0 ? 'text-delaval-blue' : 'text-green-600'}`}>
-                                            €{(selectedCustomer.account_balance || 0).toLocaleString()}
+                                        <div className="text-sm text-slate-500 mb-1">Customer Status</div>
+                                        <div className={`text-2xl font-extrabold mb-4 text-green-600`}>
+                                            In Good Standing
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -414,7 +414,7 @@ const Customers = () => {
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <div className="text-3xl font-bold font-display text-slate-900 mb-1">{stats.totalJobs}</div>
-                                        <div className="text-sm font-medium text-slate-500">Total Jobs Completed</div>
+                                        <div className="text-sm font-medium text-slate-500">Total Jobs History</div>
                                     </div>
                                     <div className="w-12 h-12 bg-[#E6F9F3] text-[#14A637] rounded-xl flex items-center justify-center">
                                         <Briefcase size={24} />
@@ -424,22 +424,26 @@ const Customers = () => {
                             <div className="stat-card">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <div className="text-3xl font-bold font-display text-slate-900 mb-1">€{stats.totalRevenue.toLocaleString()}</div>
-                                        <div className="text-sm font-medium text-slate-500">Total Revenue</div>
+                                        <div className="text-3xl font-bold font-display text-slate-900 mb-1">
+                                            {customerJobs.filter(j => j.status === 'Completed').length}
+                                        </div>
+                                        <div className="text-sm font-medium text-slate-500">Jobs Completed</div>
                                     </div>
                                     <div className="w-12 h-12 bg-[#E6F4EA] text-[#0A8043] rounded-xl flex items-center justify-center">
-                                        <Euro size={24} />
+                                        <CheckCircle size={24} />
                                     </div>
                                 </div>
                             </div>
                             <div className="stat-card">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <div className="text-3xl font-bold font-display text-slate-900 mb-1">€{stats.partsPurchased.toLocaleString()}</div>
-                                        <div className="text-sm font-medium text-slate-500">Parts Purchased</div>
+                                        <div className="text-3xl font-bold font-display text-slate-900 mb-1">
+                                            {customerJobs.filter(j => j.status !== 'Completed' && j.status !== 'Closed').length}
+                                        </div>
+                                        <div className="text-sm font-medium text-slate-500">Active Jobs</div>
                                     </div>
                                     <div className="w-12 h-12 bg-[#FFF3E6] text-[#FF6B00] rounded-xl flex items-center justify-center">
-                                        <Package size={24} />
+                                        <Clock size={24} />
                                     </div>
                                 </div>
                             </div>
@@ -472,7 +476,6 @@ const Customers = () => {
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Job ID</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Service Type</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Engineer</th>
-                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Total</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                                                 </tr>
@@ -493,7 +496,6 @@ const Customers = () => {
                                                             <td className="px-6 py-4 font-bold text-slate-900">#JOB-{job.job_number || '---'}</td>
                                                             <td className="px-6 py-4 text-slate-600">{job.service_type || job.description || 'General Service'}</td>
                                                             <td className="px-6 py-4 text-slate-600">{job.engineer_name || 'Unassigned'}</td>
-                                                            <td className="px-6 py-4 font-bold text-slate-900">€{job.total.toLocaleString()}</td>
                                                             <td className="px-6 py-4">
                                                                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                                                                 ${job.status === 'completed' ? 'bg-green-100 text-green-800' :
@@ -521,10 +523,9 @@ const Customers = () => {
                                             <thead className="bg-[#F8FAFB] border-b border-slate-100">
                                                 <tr>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Part</th>
+                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Item</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Job</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Qty</th>
-                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Cost</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-100">
@@ -537,12 +538,11 @@ const Customers = () => {
                                                                 <td className="px-6 py-4 font-bold text-slate-900">{item.description} {item.inventory?.sku ? `[${item.inventory.sku}]` : ''}</td>
                                                                 <td className="px-6 py-4 text-slate-600">#JOB-{j.job_number}</td>
                                                                 <td className="px-6 py-4 text-slate-600">{item.quantity}</td>
-                                                                <td className="px-6 py-4 font-bold text-slate-900">€{item.total.toLocaleString()}</td>
                                                             </tr>
                                                         )))}
                                                 {customerJobs.flatMap(j => (j.job_items || []).filter((i: any) => i.type === 'part')).length === 0 && (
                                                     <tr>
-                                                        <td colSpan={5} className="px-6 py-8 text-center text-slate-400 italic">
+                                                        <td colSpan={4} className="px-6 py-8 text-center text-slate-400 italic">
                                                             No parts history found for this customer.
                                                         </td>
                                                     </tr>
@@ -686,9 +686,9 @@ const Customers = () => {
 
                                         <div className="flex justify-between items-center mt-4 pt-4 border-t border-slate-100">
                                             <div>
-                                                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Outstanding</div>
-                                                <div className={`text-xl font-extrabold ${(customer.account_balance || 0) > 0 ? 'text-delaval-blue' : 'text-green-600'}`}>
-                                                    €{(customer.account_balance || 0).toLocaleString()}
+                                                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Total Jobs</div>
+                                                <div className={`text-xl font-extrabold text-delaval-blue`}>
+                                                    {customerJobs.filter(j => j.customer_id === customer.id).length}
                                                 </div>
                                             </div>
                                             <button className="w-10 h-10 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-delaval-blue group-hover:text-white transition-colors">
@@ -735,8 +735,8 @@ const Customers = () => {
                         {/* Balance Banner */}
                         <div className="bg-[#0A8043] rounded-2xl p-5 mb-6 text-white shadow-[0_8px_20px_rgba(0,81,165,0.2)] relative overflow-hidden">
                             <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-                            <div className="text-white/80 text-[11px] font-bold uppercase tracking-widest mb-1 relative z-10">Outstanding Balance</div>
-                            <div className="text-3xl font-black tracking-tight relative z-10">€{(selectedCustomer.account_balance || 0).toLocaleString()}</div>
+                            <div className="text-white/80 text-[11px] font-bold uppercase tracking-widest mb-1 relative z-10">Customer Status</div>
+                            <div className="text-3xl font-black tracking-tight relative z-10">In Good Standing</div>
                         </div>
 
                         {/* Quick Actions Grid */}
@@ -802,7 +802,7 @@ const Customers = () => {
                                             <div className="flex-1 pr-4">
                                                 <div className="flex justify-between items-start mb-1">
                                                     <div className="font-bold text-slate-900 text-sm tracking-tight">{job.service_type || 'Maintenance'}</div>
-                                                    <div className="font-bold text-slate-900 text-sm">€{job.total.toLocaleString()}</div>
+                                                    {/* <div className="font-bold text-slate-900 text-sm">€{job.total.toLocaleString()}</div> */}
                                                 </div>
                                                 <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500">
                                                     <span>{new Date(job.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
@@ -869,9 +869,6 @@ const Customers = () => {
                                                 </div>
                                             </div>
                                             <div className="text-right">
-                                                <div className={`font-black text-[15px] ${(customer.account_balance || 0) > 0 ? 'text-[#0A8043]' : 'text-[#14A637]'}`}>
-                                                    €{(customer.account_balance || 0).toLocaleString()}
-                                                </div>
                                                 <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">Balance</div>
                                             </div>
                                         </div>
