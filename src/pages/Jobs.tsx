@@ -411,7 +411,7 @@ const Jobs = () => {
                         <Search size={18} className="text-slate-400 mr-3 shrink-0" />
                         <input
                             type="text"
-                            placeholder="Search jobs, farms, engineers..."
+                            placeholder="Search jobs, clients, engineers..."
                             className="w-full bg-transparent border-none outline-none text-[15px] font-medium text-slate-900 placeholder-slate-400"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -456,12 +456,12 @@ const Jobs = () => {
                                     </div>
                                 </div>
                                 <div className="mb-4">
-                                    <h3 className="font-bold text-slate-900 text-[17px] leading-tight mb-1">{job.customers?.name || 'Unknown Farm'}</h3>
+                                    <h3 className="font-bold text-slate-900 text-[17px] leading-tight mb-1">{job.customers?.name || 'Unknown Customer'}</h3>
                                     <p className="text-[13px] text-slate-500">{job.customers?.address || 'No address provided'}</p>
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2 mb-4">
                                     <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-[#E6F4EA] text-[#0A8043] text-[11px] font-bold tracking-wide">
-                                        VMS V300 {/* Mock Data matching design */}
+                                        Pro Series 3000 {/* Mock Data matching design */}
                                     </span>
                                     <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-[11px] font-bold tracking-wide">
                                         {job.service_type}
@@ -859,7 +859,7 @@ const Jobs = () => {
                                             <div>
                                                 <input
                                                     type="text"
-                                                    placeholder="Farm Name *"
+                                                    placeholder="Customer Name *"
                                                     required
                                                     className="w-full text-slate-900 font-bold text-[15px] outline-none border-b border-slate-100 pb-2"
                                                     value={newCustomerData.name}

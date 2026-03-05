@@ -448,7 +448,7 @@ const JobDetails = () => {
                             </div>
                             <div className="flex justify-between items-center py-2 border-b border-slate-50">
                                 <span className="text-sm text-slate-500">Serial</span>
-                                <span className="text-sm font-bold text-slate-900 text-right">VMS-2019-00412</span> {/* Hardcoded mock data matching design */}
+                                <span className="text-sm font-bold text-slate-900 text-right">EQ-2019-00412</span> {/* Hardcoded mock data matching design */}
                             </div>
                             <div className="flex justify-between items-center py-2">
                                 <span className="text-sm text-slate-500">Installed</span>

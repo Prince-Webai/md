@@ -176,7 +176,7 @@ const Dashboard = () => {
         { icon: Plus, title: 'New Job', desc: 'Log a call-out', path: '/jobs', color: 'bg-green-50 text-green-600', mColor: 'bg-[#E6F4EA] text-[#0A8043]' },
         { icon: Calendar, title: 'Calendar', desc: 'Schedule', path: '/calendar', color: 'bg-green-50 text-green-600', mColor: 'bg-[#E6F4EA] text-[#0A8043]' },
         { icon: Wrench, title: 'Parts', desc: 'Inventory', path: '/inventory', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
-        { icon: Users, title: 'Customers', desc: 'Farms', path: '/customers', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
+        { icon: Users, title: 'Customers', desc: 'Clients', path: '/customers', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
         { icon: FileText, title: 'All Jobs', desc: 'Full list', path: '/jobs', color: 'bg-orange-50 text-orange-600', mColor: 'bg-[#FFE6E6] text-[#DC3545]' },
         { icon: Users, title: 'Team', desc: 'Engineers', path: '/team', color: 'bg-teal-50 text-teal-600', mColor: 'bg-[#E6FFFA] text-[#0D9488]' },
     ];
@@ -420,7 +420,7 @@ const Dashboard = () => {
                         ) : recentJobs.map((job) => (
                             <Link key={job.id} to={`/jobs/${job.id}`} className="block bg-white border border-slate-100 rounded-[1.25rem] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] active:scale-[0.99] transition-transform">
                                 <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-bold text-slate-900 text-base leading-tight pr-2">{job.customers?.name || 'Unknown Farm'}</h3>
+                                    <h3 className="font-bold text-slate-900 text-base leading-tight pr-2">{job.customers?.name || 'Unknown Customer'}</h3>
                                     <span className={`inline-flex whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide
                                         ${job.status === 'Completed' ? 'bg-[#E6F9F3] text-[#14A637]' :
                                             job.status === 'In Progress' ? 'bg-[#FFF3E6] text-[#FF6B00]' :
@@ -429,9 +429,9 @@ const Dashboard = () => {
                                     </span>
                                 </div>
                                 <p className="text-[#334155] text-sm mb-3">
-                                    {job.service_type === 'Emergency Repair' ? 'Milking machine — VMS V300' :
+                                    {job.service_type === 'Emergency Repair' ? 'Equipment — Main Unit' :
                                         job.service_type === 'Routine Maintenance' ? 'Annual service' :
-                                            'Cluster replacement'}
+                                            'Component replacement'}
                                 </p>
                                 <div className="flex items-center text-[#64748B] text-xs font-medium">
                                     <span>{job.date_scheduled ? new Date(job.date_scheduled).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '11:30'}</span>

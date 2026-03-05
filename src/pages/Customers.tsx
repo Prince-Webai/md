@@ -575,7 +575,7 @@ const Customers = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div>
                                 <h1 className="text-2xl font-bold font-display text-slate-900">Customer Accounts</h1>
-                                <p className="text-slate-500">Manage farm accounts and contact details</p>
+                                <p className="text-slate-500">Manage customer accounts and contact details</p>
                             </div>
                             <div className="flex gap-2">
                                 {selectedIds.size > 0 && (
@@ -767,13 +767,13 @@ const Customers = () => {
                                     </div>
                                     <div>
                                         <div className="font-bold text-slate-900 text-sm">STIHL iMOW 7.0</div>
-                                        <div className="text-[11px] text-slate-500 font-medium">Robotic Milking System</div>
+                                        <div className="text-[11px] text-slate-500 font-medium">Heavy Machinery System</div>
                                     </div>
                                 </div>
                                 <div className="p-4 bg-slate-50/50">
                                     <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
                                         <span className="text-xs text-slate-500 font-medium tracking-wide">Serial Number</span>
-                                        <span className="text-xs font-bold text-slate-900">VMS-2023-889</span>
+                                        <span className="text-xs font-bold text-slate-900">EQ-2023-889</span>
                                     </div>
                                     <div className="flex justify-between items-center py-2 border-b border-slate-100/50">
                                         <span className="text-xs text-slate-500 font-medium tracking-wide">Installed</span>
@@ -878,7 +878,7 @@ const Customers = () => {
 
                                         <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-50">
                                             <span className="inline-flex items-center px-2 py-1 rounded bg-[#E6F4EA] text-[#0A8043] text-[10px] font-bold tracking-wide">
-                                                VMS V300 {/* Mock Equipment */}
+                                                Pro Series 3000 {/* Mock Equipment */}
                                             </span>
                                             <span className="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-600 text-[10px] font-bold tracking-wide">
                                                 3 jobs {/* Mock Data */}
@@ -904,7 +904,7 @@ const Customers = () => {
                 <form onSubmit={handleSaveCustomer} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Company / Farm Name</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Company / Customer Name</label>
                             <input required type="text" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20" value={newCustomer.name} onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })} />
                         </div>
                         <div className="col-span-2">
