@@ -1,4 +1,5 @@
 import { Bell, Plug as Plus, Users, FileText, Calendar, ArrowUpRight, Filter, Euro, Wrench, AlertCircle, Package, Briefcase } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Job } from '../types';
@@ -16,6 +17,7 @@ const Dashboard = () => {
         totalJobs: 0
     });
     const [recentJobs, setRecentJobs] = useState<Job[]>([]);
+    const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
 
@@ -134,6 +136,23 @@ const Dashboard = () => {
                 completedToday: completedCount,
                 totalJobs: allJobs.length
             });
+
+            // Generate chart data for the last 7 days
+            const chartDataPoints: any[] = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toISOString().split('T')[0];
+
+                const jobsOnDate = allJobs.filter(j => j.date_scheduled && j.date_scheduled.startsWith(dateStr));
+
+                chartDataPoints.push({
+                    name: d.toLocaleDateString('en-GB', { weekday: 'short' }),
+                    value: jobsOnDate.length,
+                    fullDate: dateStr
+                });
+            }
+            setChartData(chartDataPoints);
 
             setRecentJobs(filteredJobs.slice(0, 5));
         } catch (error) {
@@ -278,6 +297,59 @@ const Dashboard = () => {
                             </Link>
                         );
                     })}
+                </div>
+
+                {/* Analytics Chart */}
+                <div className="section-card p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 className="text-xl font-bold font-display text-slate-900">Job Activity</h2>
+                            <p className="text-sm font-medium text-slate-500">Jobs scheduled over the last 7 days</p>
+                        </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#f1f5f9" horizontal={false} />
+                                <XAxis
+                                    dataKey="name"
+                                    axisLine={{ stroke: '#f1f5f9', strokeWidth: 1 }}
+                                    tickLine={false}
+                                    tick={{ fill: '#64748b', fontSize: 11, fontWeight: 500 }}
+                                    dy={10}
+                                />
+                                <YAxis hide domain={['dataMin', 'dataMax + 2']} />
+                                <RechartsTooltip
+                                    cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '3 3' }}
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200/60 min-w-[140px]">
+                                                    <p className="text-[#1a1a1a] font-bold text-[13px] mb-2">Timeline</p>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#0A8043]"></div>
+                                                        <p className="text-slate-600 text-[12px] font-medium">{label}</p>
+                                                    </div>
+                                                    <p className="text-[#1a1a1a] font-semibold text-[13px] ml-4.5 bg-green-50 text-green-700 inline-block px-2 py-1 rounded-md">
+                                                        {payload[0].value} {payload[0].value === 1 ? 'Job' : 'Jobs'}
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="value"
+                                    stroke="#0A8043"
+                                    strokeWidth={3}
+                                    dot={false}
+                                    activeDot={{ r: 5, fill: '#0A8043', stroke: '#ffffff', strokeWidth: 2 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
 
                 {/* Quick Actions */}
