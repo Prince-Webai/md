@@ -1,4 +1,4 @@
-import { Bell, Plug as Plus, Users, FileText, Calendar, ArrowUpRight, Filter, Euro, Wrench, AlertCircle, Package, Briefcase } from 'lucide-react';
+import { Bell, Plug as Plus, Users, FileText, Calendar, ArrowUpRight, Filter, Euro, Wrench, AlertCircle, Package, Briefcase, PieChart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Job } from '../types';
@@ -196,6 +196,7 @@ const Dashboard = () => {
         { icon: Plus, title: 'New Job', desc: 'Log a call-out', path: '/jobs', color: 'bg-green-50 text-green-600', mColor: 'bg-[#E6F4EA] text-[#0A8043]' },
         { icon: Wrench, title: 'Parts', desc: 'Inventory', path: '/inventory', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
         { icon: Users, title: 'Customers', desc: 'Clients', path: '/customers', color: 'bg-slate-100 text-slate-700', mColor: 'bg-[#F1F5F9] text-[#334155]' },
+        { icon: PieChart, title: 'Analytics', desc: 'Insights', path: '/analytics', color: 'bg-purple-50 text-purple-600', mColor: 'bg-[#F3E8FF] text-[#7E22CE]' },
         { icon: FileText, title: 'All Jobs', desc: 'Full list', path: '/jobs', color: 'bg-orange-50 text-orange-600', mColor: 'bg-[#FFE6E6] text-[#DC3545]' },
     ];
 
