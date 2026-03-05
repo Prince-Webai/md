@@ -9,8 +9,11 @@ import ConfirmModal from '../components/ConfirmModal';
 import { dataService } from '../services/dataService';
 import { useToast } from '../context/ToastContext';
 import SearchableSelect from '../components/SearchableSelect';
+import { useAuth } from '../context/AuthContext';
 
 const Customers = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.user_metadata?.role !== 'Engineer';
     const { showToast } = useToast();
     const csvInputRef = useRef<HTMLInputElement>(null);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -381,7 +384,7 @@ const Customers = () => {
                                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Terms: {selectedCustomer.payment_terms}</span>
                                     </div>
                                 </div>
-                                <div className="text-right flex flex-col items-end gap-2">
+                                <div className="text-left md:text-right flex flex-col items-start md:items-end gap-2">
                                     <div>
                                         <div className="text-sm text-slate-500 mb-1">Customer Status</div>
                                         <div className={`text-2xl font-extrabold mb-4 text-green-600`}>
@@ -577,43 +580,45 @@ const Customers = () => {
                                 <h1 className="text-2xl font-bold font-display text-slate-900">Customer Accounts</h1>
                                 <p className="text-slate-500">Manage customer accounts and contact details</p>
                             </div>
-                            <div className="flex gap-2">
-                                {selectedIds.size > 0 && (
+                            {isAdmin && (
+                                <div className="flex gap-2">
+                                    {selectedIds.size > 0 && (
+                                        <button
+                                            onClick={() => setIsBulkDeleteOpen(true)}
+                                            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-red-900/20 active:scale-95"
+                                        >
+                                            <Trash2 size={18} />
+                                            Delete ({selectedIds.size})
+                                        </button>
+                                    )}
+                                    <input
+                                        ref={csvInputRef}
+                                        type="file"
+                                        accept=".csv"
+                                        className="hidden"
+                                        onChange={handleCSVImport}
+                                    />
                                     <button
-                                        onClick={() => setIsBulkDeleteOpen(true)}
-                                        className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-red-900/20 active:scale-95"
+                                        onClick={() => csvInputRef.current?.click()}
+                                        disabled={importing}
+                                        className="flex items-center gap-2 border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl font-semibold transition-all active:scale-95 disabled:opacity-50"
                                     >
-                                        <Trash2 size={18} />
-                                        Delete ({selectedIds.size})
+                                        <Upload size={18} />
+                                        {importing ? 'Importing...' : 'CSV Import'}
                                     </button>
-                                )}
-                                <input
-                                    ref={csvInputRef}
-                                    type="file"
-                                    accept=".csv"
-                                    className="hidden"
-                                    onChange={handleCSVImport}
-                                />
-                                <button
-                                    onClick={() => csvInputRef.current?.click()}
-                                    disabled={importing}
-                                    className="flex items-center gap-2 border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl font-semibold transition-all active:scale-95 disabled:opacity-50"
-                                >
-                                    <Upload size={18} />
-                                    {importing ? 'Importing...' : 'CSV Import'}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setEditingId(null);
-                                        setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
-                                        setIsModalOpen(true);
-                                    }}
-                                    className="flex items-center gap-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-green-900/20 active:scale-95"
-                                >
-                                    <Plus size={20} />
-                                    Add Customer
-                                </button>
-                            </div>
+                                    <button
+                                        onClick={() => {
+                                            setEditingId(null);
+                                            setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
+                                            setIsModalOpen(true);
+                                        }}
+                                        className="flex items-center gap-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-green-900/20 active:scale-95"
+                                    >
+                                        <Plus size={20} />
+                                        Add Customer
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="section-card p-6">
@@ -646,14 +651,16 @@ const Customers = () => {
                                         className={`stat-card group cursor-pointer border-2 p-6 transition-all relative ${selectedIds.has(customer.id) ? 'border-red-300 bg-red-50/30' : 'border-transparent hover:border-delaval-blue'}`}
                                     >
                                         {/* Checkbox */}
-                                        <div
-                                            onClick={(e) => toggleSelect(customer.id, e)}
-                                            className={`absolute top-3 right-3 w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all ${selectedIds.has(customer.id) ? 'bg-red-500 border-red-500 text-white' : 'border-slate-300 hover:border-delaval-blue'}`}
-                                        >
-                                            {selectedIds.has(customer.id) && (
-                                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6L5 8L9 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                                            )}
-                                        </div>
+                                        {isAdmin && (
+                                            <div
+                                                onClick={(e) => toggleSelect(customer.id, e)}
+                                                className={`absolute top-3 right-3 w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-all ${selectedIds.has(customer.id) ? 'bg-red-500 border-red-500 text-white' : 'border-slate-300 hover:border-delaval-blue'}`}
+                                            >
+                                                {selectedIds.has(customer.id) && (
+                                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6L5 8L9 4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                                )}
+                                            </div>
+                                        )}
                                         <div className="w-16 h-16 bg-[#E6F4EA] text-[#0A8043] rounded-full flex items-center justify-center font-bold text-2xl mb-4 group-hover:scale-110 transition-transform">
                                             {customer.name.substring(0, 2).toUpperCase()}
                                         </div>
@@ -747,12 +754,12 @@ const Customers = () => {
                                 </div>
                                 <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">New Job</span>
                             </Link>
-                            <Link to="/invoices" className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
+                            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
                                 <div className="w-10 h-10 rounded-full bg-[#E6F9F3] text-[#14A637] flex items-center justify-center">
                                     <FileText size={20} />
                                 </div>
                                 <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">Invoice</span>
-                            </Link>
+                            </div>
                         </div>
 
                         {/* Equipment Section */}
@@ -823,24 +830,24 @@ const Customers = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Modern Mobile Header with safe area bleed */}
-                        <div className="bg-white/90 backdrop-blur-md sticky top-0 z-20 px-5 pb-4 border-b border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] mobile-header-safe-bleed">
-                            <div className="flex justify-between items-center mb-5">
-                                <h1 className="text-[26px] font-black text-slate-900 tracking-tight">Customers</h1>
-                                <button
-                                    onClick={() => {
-                                        setEditingId(null);
-                                        setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
-                                        setIsModalOpen(true);
-                                    }}
-                                    className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
-                                >
-                                    <Plus size={20} />
-                                </button>
-                            </div>
+                        {/* Page Title & Add Button - Adjusted for global header visibility */}
+                        <div className="px-5 pt-6 pb-2 flex justify-between items-center">
+                            <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Customers</h1>
+                            <button
+                                onClick={() => {
+                                    setEditingId(null);
+                                    setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
+                                    setIsModalOpen(true);
+                                }}
+                                className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
+                            >
+                                <Plus size={20} />
+                            </button>
+                        </div>
 
-                            {/* Integrated Search Bar */}
-                            <div className="bg-[#F8FAFB] rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 focus-within:bg-white transition-all shadow-inner">
+                        {/* Search Bar - Integrated into flow */}
+                        <div className="px-5 mb-4 mt-2">
+                            <div className="bg-white rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-sm">
                                 <Search size={18} className="text-slate-400 mr-3 shrink-0" />
                                 <input
                                     type="text"

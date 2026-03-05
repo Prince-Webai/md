@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Search, Calendar, User, FileText, Trash2, Pencil, Wrench, Activity, Plus, ArrowRight, Package } from 'lucide-react';
 import { Job, Customer } from '../types';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
 import DatePicker from '../components/DatePicker';
@@ -11,6 +11,9 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const Jobs = () => {
+    const navigate = useNavigate();
+    const { user } = useAuth();
+    const isAdmin = user?.user_metadata?.role !== 'Engineer';
     const [jobs, setJobs] = useState<Job[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
@@ -35,7 +38,6 @@ const Jobs = () => {
     const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
     const [newCustomerData, setNewCustomerData] = useState({ name: '', phone: '', email: '', address: '' });
 
-    const { user } = useAuth();
     const [engineers, setEngineers] = useState<any[]>([]);
 
     useEffect(() => {
@@ -257,21 +259,23 @@ const Jobs = () => {
                         <h2 className="text-lg font-bold text-slate-900">Job List</h2>
                         <div className="flex gap-2 w-full sm:w-auto">
                             <button className="btn btn-secondary text-sm">Export</button>
-                            <button onClick={() => {
-                                setEditingId(null);
-                                setNewJob({
-                                    customer_id: '',
-                                    engineer_name: '',
-                                    service_type: '',
-                                    status: 'Booked In',
-                                    date_scheduled: new Date().toISOString().split('T')[0],
-                                    notes: ''
-                                });
-                                setModalItems([]);
-                                setIsModalOpen(true);
-                            }} className="btn btn-primary text-sm shadow-md shadow-green-900/10">
-                                + New Job
-                            </button>
+                            {isAdmin && (
+                                <button onClick={() => {
+                                    setEditingId(null);
+                                    setNewJob({
+                                        customer_id: '',
+                                        engineer_name: '',
+                                        service_type: '',
+                                        status: 'Booked In',
+                                        date_scheduled: new Date().toISOString().split('T')[0],
+                                        notes: ''
+                                    });
+                                    setModalItems([]);
+                                    setIsModalOpen(true);
+                                }} className="btn btn-primary text-sm shadow-md shadow-green-900/10">
+                                    + New Job
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -351,20 +355,24 @@ const Jobs = () => {
                                                     </Link>
 
 
-                                                    <button
-                                                        onClick={() => handleEditClick(job)}
-                                                        className="p-2 text-slate-400 hover:text-delaval-blue hover:bg-green-50 rounded-lg transition-colors"
-                                                        title="Edit Job"
-                                                    >
-                                                        <Pencil size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteClick(job.id)}
-                                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                        title="Delete Job"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
+                                                    <div className="flex items-center gap-1">
+                                                        <button
+                                                            onClick={() => handleEditClick(job)}
+                                                            className="p-2 text-slate-400 hover:text-delaval-blue hover:bg-green-50 rounded-lg transition-colors"
+                                                            title="Edit Job"
+                                                        >
+                                                            <Pencil size={18} />
+                                                        </button>
+                                                        {isAdmin && (
+                                                            <button
+                                                                onClick={() => handleDeleteClick(job.id)}
+                                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                title="Delete Job"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
@@ -382,10 +390,10 @@ const Jobs = () => {
             {/* MOBILE VIEW */}
             <div className="block md:hidden pb-24 bg-[#F8FAFB] min-h-screen text-[#1a1a1a]">
 
-                {/* Modern Mobile Header with safe area bleed */}
-                <div className="bg-white/90 backdrop-blur-md sticky top-0 z-20 px-5 pb-4 border-b border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] mobile-header-safe-bleed">
-                    <div className="flex justify-between items-center mb-5">
-                        <h1 className="text-[26px] font-black text-slate-900 tracking-tight">Jobs</h1>
+                {/* Page Title & Add Button - Adjusted for global header visibility */}
+                <div className="px-5 pt-6 pb-2 flex justify-between items-center">
+                    <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Jobs</h1>
+                    {isAdmin && (
                         <button
                             onClick={() => {
                                 setEditingId(null);
@@ -404,10 +412,12 @@ const Jobs = () => {
                         >
                             <Plus size={20} />
                         </button>
-                    </div>
+                    )}
+                </div>
 
-                    {/* Integrated Search Bar */}
-                    <div className="bg-[#F8FAFB] rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 focus-within:bg-white transition-all shadow-inner">
+                {/* Search Bar - Integrated into flow */}
+                <div className="px-5 mb-4 mt-2">
+                    <div className="bg-white rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-sm">
                         <Search size={18} className="text-slate-400 mr-3 shrink-0" />
                         <input
                             type="text"
@@ -419,8 +429,8 @@ const Jobs = () => {
                     </div>
                 </div>
 
-                {/* Status Tabs Slider - Sticky below header */}
-                <div className="sticky top-[146px] z-10 bg-[#F8FAFB]/95 backdrop-blur-sm pt-4 pb-3 border-b border-slate-100/50">
+                {/* Status Tabs Slider - Sticky below global header */}
+                <div className="sticky top-[60px] z-10 bg-[#F8FAFB]/95 backdrop-blur-sm pt-4 pb-3 border-b border-slate-100/50">
                     <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar px-5">
                         {['all', 'Booked In', 'In Progress', 'Waiting for Parts', 'Ready to Continue', 'Ready for Collection', 'Completed'].map((tab) => (
                             <button
@@ -549,7 +559,7 @@ const Jobs = () => {
                             )}
                         </div>
 
-                        <div className="bg-white p-4 rounded-xl border border-slate-100 grid grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-xl border border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="col-span-2">
                                 <h3 className="font-bold text-slate-900 mb-4">Job Details</h3>
                                 <SearchableSelect

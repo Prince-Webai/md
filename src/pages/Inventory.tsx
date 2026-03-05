@@ -6,8 +6,11 @@ import { InventoryItem } from '../types';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal';
 import SearchableSelect from '../components/SearchableSelect';
+import { useAuth } from '../context/AuthContext';
 
 const Inventory = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.user_metadata?.role !== 'Engineer';
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -201,16 +204,33 @@ const Inventory = () => {
                         </p>
                     </div>
                     {activeTab === 'inventory' ? (
-                        <div className="flex gap-2">
-                            <button className="btn btn-secondary">Import CSV</button>
-                            <button onClick={() => setIsModalOpen(true)} className="btn btn-primary shadow-lg shadow-green-900/20">
-                                <Plus size={20} className="mr-2" /> Add Part
-                            </button>
-                        </div>
+                        isAdmin && (
+                            <div className="flex gap-2">
+                                <button className="btn btn-secondary">Import CSV</button>
+                                <button onClick={() => {
+                                    setEditingId(null);
+                                    setNewItem({
+                                        sku: '',
+                                        name: '',
+                                        category: '',
+                                        cost_price: 0,
+                                        sell_price: 0,
+                                        stock_level: 0,
+                                        low_stock_threshold: 5,
+                                        location: ''
+                                    });
+                                    setIsModalOpen(true);
+                                }} className="btn btn-primary shadow-lg shadow-green-900/20">
+                                    <Plus size={20} className="mr-2" /> Add Part
+                                </button>
+                            </div>
+                        )
                     ) : (
-                        <button className="btn btn-primary shadow-lg shadow-green-900/20">
-                            <span>🎯</span> <span className="ml-2">Allocate Parts</span>
-                        </button>
+                        isAdmin && (
+                            <button className="btn btn-primary shadow-lg shadow-green-900/20">
+                                <span>🎯</span> <span className="ml-2">Allocate Parts</span>
+                            </button>
+                        )
                     )}
                 </div>
 
@@ -347,26 +367,30 @@ const Inventory = () => {
                                                         </span>
                                                     )}
                                                     <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleEditClick(item);
-                                                            }}
-                                                            className="p-1.5 text-slate-400 hover:text-delaval-blue transition-colors rounded hover:bg-slate-100"
-                                                            title="Edit Part"
-                                                        >
-                                                            <Pencil size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleDeleteClick(item.id);
-                                                            }}
-                                                            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded hover:bg-slate-100"
-                                                            title="Delete Part"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
+                                                        {isAdmin && (
+                                                            <>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleEditClick(item);
+                                                                    }}
+                                                                    className="p-1.5 text-slate-400 hover:text-delaval-blue transition-colors rounded hover:bg-slate-100"
+                                                                    title="Edit Part"
+                                                                >
+                                                                    <Pencil size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleDeleteClick(item.id);
+                                                                    }}
+                                                                    className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded hover:bg-slate-100"
+                                                                    title="Delete Part"
+                                                                >
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -436,10 +460,10 @@ const Inventory = () => {
 
             {/* MOBILE VIEW */}
             <div className="block md:hidden pb-24 bg-[#F8FAFB] min-h-screen text-[#1a1a1a]">
-                {/* Modern Mobile Header with safe area bleed */}
-                <div className="bg-white/90 backdrop-blur-md sticky top-0 z-20 px-5 pb-4 border-b border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] mobile-header-safe-bleed">
-                    <div className="flex justify-between items-center mb-5">
-                        <h1 className="text-[26px] font-black text-slate-900 tracking-tight">Parts</h1>
+                {/* Page Title & Add Button - Adjusted for global header visibility */}
+                <div className="px-5 pt-6 pb-2 flex justify-between items-center">
+                    <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Parts</h1>
+                    {isAdmin && (
                         <button
                             onClick={() => {
                                 setEditingId(null);
@@ -452,10 +476,12 @@ const Inventory = () => {
                         >
                             <Plus size={20} />
                         </button>
-                    </div>
+                    )}
+                </div>
 
-                    {/* Integrated Search Bar */}
-                    <div className="bg-[#F8FAFB] rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 focus-within:bg-white transition-all shadow-inner">
+                {/* Search Bar - Integrated into flow */}
+                <div className="px-5 mb-4 mt-2">
+                    <div className="bg-white rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-sm">
                         <Search size={18} className="text-slate-400 mr-3 shrink-0" />
                         <input
                             type="text"

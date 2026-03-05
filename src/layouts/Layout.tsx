@@ -52,6 +52,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             title: 'Admin',
             items: [
                 ...(user?.user_metadata?.role !== 'Engineer' ? [
+                    { icon: PieChart, label: 'Analytics', path: '/analytics' },
                     { icon: Users, label: 'Team & Engineers', path: '/team' },
                 ] : []),
             ]
@@ -63,37 +64,37 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         { icon: LayoutDashboard, label: 'Home', path: '/' },
         { icon: FileText, label: 'Jobs', path: '/jobs' },
         { icon: Users, label: 'Customers', path: '/customers' },
-        { icon: Wrench, label: 'Parts', path: '/inventory' },
+        { icon: Package, label: 'Parts', path: '/inventory' },
     ];
 
     const closeSidebar = () => setIsSidebarOpen(false);
 
     return (
         <div className="min-h-screen bg-[#F8FAFB] font-sans text-[#1a1a1a]">
-            {/* Desktop Header */}
-            <header className="hidden md:block sticky top-0 z-[1000] border-b border-slate-200 bg-white shadow-sm">
-                <div className="max-w-[1600px] mx-auto px-8 py-2 flex justify-between items-center flex-wrap gap-4">
+            {/* Header - Hidden on mobile, visible on desktop */}
+            <header className="hidden md:block sticky top-0 z-[1000] bg-white shadow-sm h-auto overflow-hidden transition-colors">
+                <div className="max-w-[1600px] mx-auto md:px-8 py-3 flex justify-between items-center h-full">
 
                     {/* Logo Section */}
                     <div className="flex items-center">
                         <img
                             src={logoImg}
                             alt="MD Burke"
-                            className="h-[65px] w-auto scale-[1.95] origin-left mix-blend-multiply transition-transform duration-300 hover:scale-[2]"
+                            className="h-[35px] md:h-[65px] w-auto scale-[1.4] md:scale-[1.95] origin-left brightness-0 invert md:brightness-100 md:invert-0 md:mix-blend-multiply transition-transform duration-300"
                         />
                     </div>
 
-                    {/* User Info & Mobile Toggle */}
-                    <div className="flex items-center gap-4">
+                    {/* Desktop User Info Only */}
+                    <div className="hidden md:flex items-center gap-4">
                         <button
                             onClick={() => navigate('/settings')}
-                            className="hidden md:flex p-2 text-slate-400 hover:text-delaval-blue hover:bg-green-50 rounded-full transition-colors"
+                            className="p-2 text-slate-400 hover:text-delaval-blue hover:bg-green-50 rounded-full transition-colors"
                             title="Settings"
                         >
                             <SettingsIcon size={20} />
                         </button>
 
-                        <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-full border border-slate-200">
+                        <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-full border border-slate-200">
                             <div className="w-9 h-9 rounded-full bg-delaval-blue text-white flex items-center justify-center font-bold">
                                 <User size={20} />
                             </div>
@@ -101,14 +102,6 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                                 {userName}
                             </div>
                         </div>
-
-
-                        <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                        >
-                            <Menu size={28} />
-                        </button>
                     </div>
                 </div>
             </header>
@@ -116,18 +109,17 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             {/* Main Container */}
             <div className="max-w-[1600px] mx-auto min-h-screen md:p-4 lg:p-8 flex flex-col md:grid lg:grid-cols-[280px_1fr] gap-0 md:gap-8 bg-[#F8FAFB]">
 
-                {/* Desktop Sidebar - Matching Prototype Card Style */}
+                {/* Sidebar - Desktop & Mobile Drawer */}
                 <aside className={`
-          hidden md:block
-          fixed inset-0 z-50 lg:static lg:z-auto bg-black/50 lg:bg-transparent
+          fixed md:static inset-0 z-[1100] md:z-auto
+          ${isSidebarOpen ? 'bg-black/50 pointer-events-auto' : 'bg-transparent pointer-events-none md:pointer-events-auto'}
           transition-all duration-300
-          ${isSidebarOpen ? 'opacity-100 visible' : 'opacity-0 invisible lg:opacity-100 lg:visible'}
         `} onClick={closeSidebar}>
 
                     <div onClick={e => e.stopPropagation()} className={`
-            bg-white rounded-2xl p-6 shadow-[0_4px_12px_rgba(0,81,165,0.12)] h-fit sticky top-[120px]
-            w-[280px] max-w-[80vw] transform transition-transform duration-300
-            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            bg-white md:bg-white rounded-r-2xl md:rounded-2xl p-6 shadow-2xl md:shadow-[0_4px_12px_rgba(0,81,165,0.12)] h-full md:h-fit sticky top-0 md:top-[120px]
+            w-[280px] max-w-[85vw] transform transition-transform duration-300
+            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
           `}>
 
 
@@ -181,7 +173,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center px-4 pt-3 pb-8 z-[2000] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center px-1 pt-3 pb-8 z-[2000] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
                 {mobileNavItems.map((item) => {
                     const Icon = item.icon;
                     // Strict active checking for home, looser for others
@@ -193,10 +185,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <Link
                             key={item.path}
                             to={item.path}
-                            className={`flex flex-col items-center gap-1 transition-colors px-4 ${isActive ? 'text-[#0A8043]' : 'text-slate-400'}`}
+                            className={`flex flex-col items-center gap-1 transition-colors px-2 border-t-2 ${isActive ? 'text-[#0A8043] border-[#0A8043]' : 'text-slate-400 border-transparent'}`}
                         >
-                            <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                            <span className="text-[10px] uppercase font-bold tracking-wider">{item.label}</span>
+                            <Icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                            <span className="text-[9px] uppercase font-bold tracking-wider">{item.label}</span>
                         </Link>
                     );
                 })}

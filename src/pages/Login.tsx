@@ -220,17 +220,7 @@ const Login = () => {
                         )}
                     </button>
 
-                    {/* DEV ONLY BYPASS */}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            showToast('Bypassing login for dev testing', 'success');
-                            navigate('/inventory');
-                        }}
-                        className="w-full mt-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl border border-slate-300 transition-all"
-                    >
-                        Bypass Login (Dev)
-                    </button>
+
                 </form>
 
                 <div className="bg-slate-50 p-4 text-center text-xs text-slate-400 border-t border-slate-100">

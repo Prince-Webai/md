@@ -1,5 +1,4 @@
 import { Bell, Plug as Plus, Users, FileText, Calendar, ArrowUpRight, Filter, Euro, Wrench, AlertCircle, Package, Briefcase } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Job } from '../types';
@@ -17,7 +16,6 @@ const Dashboard = () => {
         totalJobs: 0
     });
     const [recentJobs, setRecentJobs] = useState<Job[]>([]);
-    const [chartData, setChartData] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const { user } = useAuth();
 
@@ -136,23 +134,6 @@ const Dashboard = () => {
                 completedToday: completedCount,
                 totalJobs: allJobs.length
             });
-
-            // Generate chart data for the last 7 days
-            const chartDataPoints: any[] = [];
-            for (let i = 6; i >= 0; i--) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const dateStr = d.toISOString().split('T')[0];
-
-                const jobsOnDate = allJobs.filter(j => j.date_scheduled && j.date_scheduled.startsWith(dateStr));
-
-                chartDataPoints.push({
-                    name: d.toLocaleDateString('en-GB', { weekday: 'short' }),
-                    value: jobsOnDate.length,
-                    fullDate: dateStr
-                });
-            }
-            setChartData(chartDataPoints);
 
             setRecentJobs(filteredJobs.slice(0, 5));
         } catch (error) {
@@ -299,62 +280,14 @@ const Dashboard = () => {
                     })}
                 </div>
 
-                {/* Analytics Chart */}
-                <div className="section-card p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <div>
-                            <h2 className="text-xl font-bold font-display text-slate-900">Job Activity</h2>
-                            <p className="text-sm font-medium text-slate-500">Jobs scheduled over the last 7 days</p>
-                        </div>
-                    </div>
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#f1f5f9" horizontal={false} />
-                                <XAxis
-                                    dataKey="name"
-                                    axisLine={{ stroke: '#f1f5f9', strokeWidth: 1 }}
-                                    tickLine={false}
-                                    tick={{ fill: '#64748b', fontSize: 11, fontWeight: 500 }}
-                                    dy={10}
-                                />
-                                <YAxis hide domain={['dataMin', 'dataMax + 2']} />
-                                <RechartsTooltip
-                                    cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '3 3' }}
-                                    content={({ active, payload, label }) => {
-                                        if (active && payload && payload.length) {
-                                            return (
-                                                <div className="bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-slate-200/60 min-w-[140px]">
-                                                    <p className="text-[#1a1a1a] font-bold text-[13px] mb-2">Timeline</p>
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <div className="w-2.5 h-2.5 rounded-full bg-[#0A8043]"></div>
-                                                        <p className="text-slate-600 text-[12px] font-medium">{label}</p>
-                                                    </div>
-                                                    <p className="text-[#1a1a1a] font-semibold text-[13px] ml-4.5 bg-green-50 text-green-700 inline-block px-2 py-1 rounded-md">
-                                                        {payload[0].value} {payload[0].value === 1 ? 'Job' : 'Jobs'}
-                                                    </p>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="value"
-                                    stroke="#0A8043"
-                                    strokeWidth={3}
-                                    dot={false}
-                                    activeDot={{ r: 5, fill: '#0A8043', stroke: '#ffffff', strokeWidth: 2 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
                 {/* Quick Actions */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    {quickActions.map((action, index) => {
+                    {quickActions.filter(action => {
+                        if (user?.user_metadata?.role === 'Engineer') {
+                            return !['New Job', 'Add Customer'].includes(action.title);
+                        }
+                        return true;
+                    }).map((action, index) => {
                         const Icon = action.icon;
                         return (
                             <Link key={index} to={action.path} className="group relative bg-white rounded-xl p-6 shadow-sm border-2 border-transparent hover:border-delaval-blue transition-all hover:-translate-y-1 hover:shadow-lg overflow-hidden">
@@ -442,25 +375,17 @@ const Dashboard = () => {
             {/* MOBILE VIEW - Exact App Design Match (Hidden on Desktop) */}
             <div className="block md:hidden pb-12 w-full max-w-[100vw] overflow-x-hidden text-[#1a1a1a]">
 
-                {/* Fixed App Header */}
-                <div className="bg-[#0A8043] text-white pt-10 pb-20 px-6 relative w-full">
-                    <div
-                        onClick={() => setIsNotificationsOpen(true)}
-                        className="absolute top-10 right-6 opacity-80 backdrop-blur border border-white/20 rounded-full p-2 bg-white/10 z-10 w-9 h-9 flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
-                    >
-                        <Bell size={18} />
-                        {notifications.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-[#0A8043]"></span>}
-                    </div>
-
-                    <p className="text-[#a0c5ea] text-xs font-semibold mb-1 uppercase tracking-wider opacity-90">{formattedDate}</p>
-                    <h1 className="text-2xl font-bold mb-1 tracking-tight">
+                {/* Mobile Welcome Section - Restored Dairy-style High Fidelity */}
+                <div className="bg-[#0A8043] text-white pt-6 pb-16 px-6 relative w-full">
+                    <p className="text-white/60 text-[10px] font-bold mb-1 uppercase tracking-widest">{formattedDate}</p>
+                    <h1 className="text-2xl font-bold tracking-tight">
                         Good morning, {(user?.user_metadata?.name || user?.email?.split('@')[0])?.split(' ')[0] || 'Seán'} 👋
                     </h1>
-                    <p className="text-[#a0c5ea] text-sm font-medium">MD Burke</p>
+                    <p className="text-white/60 text-xs font-medium uppercase tracking-wider mt-1">Workshop System</p>
                 </div>
 
-                {/* Overlapping Stats Bar */}
-                <div className="px-5 -mt-10 relative z-10 mb-8 w-full max-w-[400px] mx-auto">
+                {/* Overlapping Stats Bar - Re-adjusting for green header bleed */}
+                <div className="px-5 -mt-10 relative z-10 mb-8 w-full max-w-[500px] mx-auto">
                     <div className="flex gap-3 justify-between">
                         <div className="bg-white rounded-[1.25rem] p-4 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center">
                             <span className="text-[28px] font-black text-[#FF6B00] leading-none mb-1">{loading ? '-' : stats.activeJobs}</span>
@@ -478,8 +403,13 @@ const Dashboard = () => {
                 </div>
 
                 {/* 2x2 Quick Action Grid */}
-                <div className="px-5 grid grid-cols-2 gap-4 mb-10 w-full max-w-[400px] mx-auto">
-                    {quickActions.slice(0, 4).map((action, index) => {
+                <div className="px-5 grid grid-cols-2 gap-4 mb-10 w-full max-w-[500px] mx-auto">
+                    {quickActions.filter(action => {
+                        if (user?.user_metadata?.role === 'Engineer') {
+                            return !['New Job', 'Add Customer'].includes(action.title);
+                        }
+                        return true;
+                    }).slice(0, 4).map((action, index) => {
                         const Icon = action.icon;
                         return (
                             <Link key={index} to={action.path} className="bg-white rounded-[1.25rem] p-5 shadow-[0_4px_16px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col items-start active:scale-[0.98] active:bg-slate-50 transition-all">
@@ -494,7 +424,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Today's Jobs List */}
-                <div className="px-5 w-full max-w-[400px] mx-auto">
+                <div className="px-5 w-full max-w-[500px] mx-auto">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xs uppercase font-bold text-slate-500 tracking-widest pl-1">Today's Jobs</h2>
                         <Link to="/jobs" className="text-sm font-bold text-[#0A8043]">See all</Link>

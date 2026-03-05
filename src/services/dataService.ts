@@ -21,6 +21,8 @@ export const dataService = {
             }
 
             if (engineerName) {
+                // If it's a UUID (ID), use eq('mechanic_id', ...)
+                // If it's a string name, we might need a different approach, but DB usually uses IDs.
                 query = query.eq('mechanic_id', engineerName);
             }
 
@@ -319,6 +321,58 @@ export const dataService = {
         } catch (error) {
             console.error('Error recalculating bounds:', error);
             return 0;
+        }
+    },
+
+    async getAnalyticsData(days: number = 7): Promise<any> {
+        if (!isSupabaseConfigured()) return { jobs: [], items: [] };
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        const startDateStr = startDate.toISOString();
+
+        try {
+            const [jobsRes, itemsRes] = await Promise.all([
+                supabase.from('jobs').select('*').gte('created_at', startDateStr),
+                supabase.from('job_items').select('*, inventory(name, sku)').gte('created_at', startDateStr)
+            ]);
+
+            return {
+                jobs: jobsRes.data || [],
+                items: itemsRes.data || []
+            };
+        } catch (error) {
+            console.error('Error fetching analytics data:', error);
+            return { jobs: [], items: [] };
+        }
+    },
+
+    async getTopUsedParts(limit: number = 5): Promise<any[]> {
+        if (!isSupabaseConfigured()) return [];
+        try {
+            const { data, error } = await supabase
+                .from('job_items')
+                .select('inventory_id, quantity, inventory(name, sku)')
+                .not('inventory_id', 'is', null)
+                .eq('type', 'part');
+
+            if (error) throw error;
+
+            // Grouping and summing in JS since Supabase simple client doesn't support complex group by easily
+            const partsMap = new Map();
+            (data || []).forEach(item => {
+                const id = item.inventory_id;
+                const inventory = item.inventory as any;
+                const existing = partsMap.get(id) || { name: inventory?.name || 'Unknown', sku: inventory?.sku || '', count: 0 };
+                partsMap.set(id, { ...existing, count: existing.count + (item.quantity || 1) });
+            });
+
+            return Array.from(partsMap.values())
+                .sort((a, b) => b.count - a.count)
+                .slice(0, limit);
+        } catch (error) {
+            console.error('Error fetching top parts:', error);
+            return [];
         }
     }
 

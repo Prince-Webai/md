@@ -8,6 +8,7 @@ import Inventory from './pages/Inventory'
 import Team from './pages/Team'
 import Settings from './pages/Settings'
 import JobDetails from './pages/JobDetails'
+import Analytics from './pages/Analytics'
 
 import Login from './pages/Login'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -47,6 +48,13 @@ function App() {
                         <ProtectedRoute>
                             <Layout>
                                 <Dashboard />
+                            </Layout>
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/analytics" element={
+                        <ProtectedRoute>
+                            <Layout>
+                                <Analytics />
                             </Layout>
                         </ProtectedRoute>
                     } />
