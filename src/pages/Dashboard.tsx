@@ -1,4 +1,4 @@
-import { Bell, Plug as Plus, Users, FileText, Calendar, ArrowUpRight, Filter, Euro, Wrench, AlertCircle, Package } from 'lucide-react';
+import { Bell, Plug as Plus, Users, FileText, Calendar, ArrowUpRight, Filter, Euro, Wrench, AlertCircle, Package, Briefcase } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Job } from '../types';
@@ -12,7 +12,8 @@ const Dashboard = () => {
         outstandingBalance: 0,
         activeJobs: 0,
         lowStockItems: 0,
-        completedToday: 0
+        completedToday: 0,
+        totalJobs: 0
     });
     const [recentJobs, setRecentJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
@@ -130,7 +131,8 @@ const Dashboard = () => {
                 outstandingBalance: 0, // Migrated to external POS
                 activeJobs: activeJobsCount,
                 lowStockItems: lowStockCount,
-                completedToday: completedCount
+                completedToday: completedCount,
+                totalJobs: allJobs.length
             });
 
             setRecentJobs(filteredJobs.slice(0, 5));
@@ -176,6 +178,15 @@ const Dashboard = () => {
             icon: FileText,
             color: 'bg-[#F1F5F9] text-[#334155]',
             change: 'Jobs finished today',
+            changeType: 'positive',
+            link: '/jobs'
+        },
+        {
+            label: 'Total Jobs',
+            value: stats.totalJobs,
+            icon: Briefcase,
+            color: 'bg-teal-50 text-teal-600',
+            change: 'All time history',
             changeType: 'positive',
             link: '/jobs'
         }
@@ -244,7 +255,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {statCards.map((stat, index) => {
                         const Icon = stat.icon;
                         return (
