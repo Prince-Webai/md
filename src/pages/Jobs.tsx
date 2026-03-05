@@ -291,7 +291,7 @@ const Jobs = () => {
                                             : 'border-transparent text-slate-500 hover:text-slate-700'
                                         }`}
                                 >
-                                    {tab.replace('_', ' ')} ({getTabCount(tab)})
+                                    {tab === 'all' ? 'All' : tab.replace('_', ' ')} ({getTabCount(tab)})
                                 </button>
                             ))}
                         </div>
@@ -442,7 +442,7 @@ const Jobs = () => {
                                         : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
                                     }`}
                             >
-                                {tab.replace('_', ' ')} <span className="opacity-60 ml-1">({getTabCount(tab)})</span>
+                                {tab === 'all' ? 'All' : tab.replace('_', ' ')} <span className="opacity-60 ml-1">({getTabCount(tab)})</span>
                             </button>
                         ))}
                     </div>
