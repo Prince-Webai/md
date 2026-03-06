@@ -266,6 +266,8 @@ const JobDetails = () => {
             doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 285);
 
             doc.save(`JobSheet_${job.job_number}.pdf`);
+            alert('Job Sheet generated and downloading!');
+
             const url = await uploadPDFToStorage(doc, `JobSheet_${job.job_number}.pdf`);
             if (url) {
                 await supabase.from('jobs').update({ job_sheet_pdf_url: url }).eq('id', job.id);
@@ -370,6 +372,8 @@ const JobDetails = () => {
             doc.text('Signature: __________________________', 120, finalRecsY + 23);
 
             doc.save(`CompletionReport_${job.job_number}.pdf`);
+            alert('Completion Report generated and downloading!');
+
             const url = await uploadPDFToStorage(doc, `CompletionReport_${job.job_number}.pdf`);
             if (url) {
                 await supabase.from('jobs').update({
