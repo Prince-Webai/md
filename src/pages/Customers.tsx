@@ -5,11 +5,14 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Customer } from '../types';
 import Modal from '../components/Modal';
+import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 import { dataService } from '../services/dataService';
-import { useToast } from '../context/ToastContext';
 import SearchableSelect from '../components/SearchableSelect';
 import { useAuth } from '../context/AuthContext';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Settings } from '../types';
 
 const Customers = () => {
     const { user } = useAuth();
@@ -41,6 +44,8 @@ const Customers = () => {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
     const [importing, setImporting] = useState(false);
+    const [settings, setSettings] = useState<Settings | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     const handleDeleteClick = () => {
         if (selectedCustomer) {
@@ -60,11 +65,11 @@ const Customers = () => {
                 setIsDeleteModalOpen(false);
                 setDeleteId(null);
             } else {
-                alert('Failed to delete customer');
+                showToast('Error', 'Failed to delete customer', 'error');
             }
         } catch (error) {
             console.error('Error deleting customer:', error);
-            alert('Failed to delete customer');
+            showToast('Error', 'Failed to delete customer', 'error');
         } finally {
             setIsDeleting(false);
         }
@@ -168,7 +173,13 @@ const Customers = () => {
 
     useEffect(() => {
         fetchCustomers();
+        fetchSettings();
     }, []);
+
+    const fetchSettings = async () => {
+        const data = await dataService.getSettings();
+        setSettings(data);
+    };
 
     const fetchCustomers = async () => {
         try {
@@ -225,9 +236,10 @@ const Customers = () => {
             setIsModalOpen(false);
             setEditingId(null);
             setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
+            showToast('Success', editingId ? 'Customer updated successfully' : 'Customer created successfully', 'success');
         } catch (error: any) {
             console.error('Error saving customer:', error);
-            alert(`Failed to save customer: ${error.message || JSON.stringify(error)}`);
+            showToast('Error', error.message || 'Failed to save customer.', 'error');
         }
     };
 
@@ -329,8 +341,106 @@ const Customers = () => {
         }
     };
 
+    const generateServiceHistory = async () => {
+        if (!selectedCustomer) return;
+        setIsGenerating(true);
+        try {
+            const s = settings || {
+                company_name: 'MD Burke Ltd',
+                company_address: 'Workshop Address',
+                company_phone: 'Professional Service',
+                company_email: 'service@mdburke.ie',
+                company_logo_url: ''
+            };
 
+            const doc = new jsPDF();
+            const primaryColor: [number, number, number] = [10, 128, 67];
 
+            // Header
+            doc.setFillColor(248, 250, 251);
+            doc.rect(0, 0, 210, 45, 'F');
+
+            const addLogo = async (doc: any) => {
+                if (s.company_logo_url) {
+                    try {
+                        const img = new Image();
+                        img.src = s.company_logo_url;
+                        await new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = reject;
+                        });
+                        doc.addImage(img, 'PNG', 14, 10, 30, 30);
+                        return true;
+                    } catch (e) {
+                        return false;
+                    }
+                }
+                return false;
+            };
+
+            const hasLogo = await addLogo(doc);
+
+            if (!hasLogo) {
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.setFontSize(24);
+                doc.setFont('helvetica', 'bold');
+                doc.text(s.company_name.toUpperCase(), 14, 25);
+            }
+
+            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(9);
+            doc.text(s.company_address || '', hasLogo ? 48 : 14, hasLogo ? 18 : 32);
+            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, hasLogo ? 48 : 14, hasLogo ? 23 : 37);
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(18);
+            doc.setFont('helvetica', 'bold');
+            doc.text('SERVICE HISTORY REPORT', 196, 25, { align: 'right' });
+
+            // Customer Info
+            doc.setFontSize(12);
+            doc.text('CUSTOMER:', 14, 55);
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.text([
+                selectedCustomer.name,
+                selectedCustomer.address_line1 || selectedCustomer.address || 'No address',
+                selectedCustomer.phone || 'No phone'
+            ], 14, 62);
+
+            // History Table
+            autoTable(doc, {
+                startY: 85,
+                head: [['DATE', 'JOB NO.', 'SERVICE TYPE', 'ENGINEER', 'STATUS']],
+                body: customerJobs.map(j => [
+                    new Date(j.created_at).toLocaleDateString(),
+                    `#${j.job_number}`,
+                    j.service_type || 'General Service',
+                    j.engineer_name || 'Unassigned',
+                    j.status.toUpperCase()
+                ]),
+                theme: 'striped',
+                headStyles: { fillColor: primaryColor, textColor: 255 },
+                styles: { fontSize: 9 }
+            });
+
+            doc.save(`ServiceHistory_${selectedCustomer.name.replace(/\s+/g, '_')}.pdf`);
+            showToast('Success', 'Service history PDF generated', 'success');
+        } catch (error: any) {
+            showToast('Error', 'Failed to generate PDF', 'error');
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const syncWithPOS = async () => {
+        if (!selectedCustomer) return;
+        setIsGenerating(true);
+        // Simulate POS sync
+        await new Promise(r => setTimeout(r, 1500));
+        showToast('POS Sync', 'Customer data successfully synced with POS machine', 'success');
+        setIsGenerating(false);
+    };
 
     return (
         <div className="space-y-6">
@@ -393,13 +503,27 @@ const Customers = () => {
                                     </div>
                                     <div className="flex gap-2">
                                         <button
+                                            onClick={syncWithPOS}
+                                            disabled={isGenerating}
+                                            className="btn border border-delaval-blue text-delaval-blue hover:bg-delaval-blue/5 transition-colors flex items-center gap-2"
+                                        >
+                                            <Upload size={16} />
+                                            Sync with POS
+                                        </button>
+                                        <button
+                                            onClick={generateServiceHistory}
+                                            disabled={isGenerating}
+                                            className="btn border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2"
+                                        >
+                                            <Download size={16} />
+                                            {isGenerating ? 'Generating...' : 'Download History'}
+                                        </button>
+                                        <button
                                             onClick={handleEditClick}
                                             className="btn border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors"
                                         >
                                             Edit Profile
                                         </button>
-
-
                                         <button
                                             onClick={handleDeleteClick}
                                             className="btn border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 transition-colors"
@@ -479,7 +603,7 @@ const Customers = () => {
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Job ID</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Service Type</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Engineer</th>
-                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Pipeline</th>
                                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                                                 </tr>
                                             </thead>

@@ -211,7 +211,7 @@ const Dashboard = () => {
                 {/* Header & Date Filter */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-slate-900">Dashboard Overview</h1>
+                        <h1 className="text-2xl font-bold text-slate-900">Pipeline Overview</h1>
                         <p className="text-slate-500 text-sm">Welcome back, {user?.user_metadata?.name || 'Administrator'}</p>
                     </div>
 
@@ -326,7 +326,7 @@ const Dashboard = () => {
                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Type</th>
                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Engineer</th>
                                     <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Pipeline</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -336,10 +336,25 @@ const Dashboard = () => {
                                     <tr key={job.id} className="hover:bg-slate-50/80 transition-colors group cursor-pointer">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="font-bold text-slate-900">#{job.job_number}</div>
-                                                <Link to={`/jobs/${job.id}`} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-delaval-blue transition-colors">
-                                                    <ArrowUpRight size={16} />
-                                                </Link>
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="font-bold text-slate-900">#{job.job_number}</div>
+                                                        {job.priority && job.priority !== 'Normal' && (
+                                                            <span className={`px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider ${job.priority === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                                                                }`}>
+                                                                {job.priority}
+                                                            </span>
+                                                        )}
+                                                        {job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date() && (
+                                                            <span className="px-1.5 py-0.5 rounded-[4px] bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider">
+                                                                Overdue
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <Link to={`/jobs/${job.id}`} className="text-[10px] text-delaval-blue hover:underline flex items-center gap-0.5">
+                                                        View Details <ArrowUpRight size={10} />
+                                                    </Link>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -441,8 +456,24 @@ const Dashboard = () => {
                         ) : recentJobs.map((job) => (
                             <Link key={job.id} to={`/jobs/${job.id}`} className="block bg-white border border-slate-100 rounded-[1.25rem] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] active:scale-[0.99] transition-transform">
                                 <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-bold text-slate-900 text-base leading-tight pr-2">{job.customers?.name || 'Unknown Customer'}</h3>
-                                    <span className={`inline-flex whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="text-[10px] font-bold text-slate-400 tracking-wider">#{job.job_number}</div>
+                                            {job.priority && job.priority !== 'Normal' && (
+                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${job.priority === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                                                    }`}>
+                                                    {job.priority}
+                                                </span>
+                                            )}
+                                            {job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date() && (
+                                                <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider">
+                                                    Overdue
+                                                </span>
+                                            )}
+                                        </div>
+                                        <h3 className="font-bold text-slate-900 text-base leading-tight pr-2 line-clamp-1">{job.customers?.name || 'Unknown Customer'}</h3>
+                                    </div>
+                                    <span className={`inline-flex whitespace-nowrap px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide h-fit
                                         ${job.status === 'Completed' ? 'bg-[#E6F9F3] text-[#14A637]' :
                                             job.status === 'In Progress' ? 'bg-[#FFF3E6] text-[#FF6B00]' :
                                                 'bg-[#E6F4EA] text-[#0A8043]'}`}>

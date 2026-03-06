@@ -3,6 +3,7 @@ import { Plus, Search, Trash2, Mail, Phone, Pencil, ShieldCheck, UserCheck } fro
 import SearchableSelect from '../components/SearchableSelect';
 import { supabase } from '../lib/supabase';
 import Modal from '../components/Modal';
+import { useToast } from '../context/ToastContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 interface Engineer {
@@ -15,6 +16,7 @@ interface Engineer {
 }
 
 const Team = () => {
+    const { showToast } = useToast();
     const [engineers, setEngineers] = useState<Engineer[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -99,7 +101,7 @@ const Team = () => {
 
         } catch (error: any) {
             console.error('Error saving engineer:', error);
-            alert(`Failed to save: ${error.message}`);
+            showToast('Error', error.message || 'Failed to save engineer.', 'error');
         }
     };
 
@@ -136,7 +138,7 @@ const Team = () => {
             setDeleteId(null);
         } catch (error: any) {
             console.error('Error deleting engineer:', error);
-            alert(`Failed to delete: ${error.message}`);
+            showToast('Error', error.message || 'Failed to delete engineer.', 'error');
         } finally {
             setIsDeleting(false);
         }

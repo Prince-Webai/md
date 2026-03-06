@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Globe, Phone, Mail, MapPin, Building, CreditCard, Receipt, Activity, User } from 'lucide-react';
+import { Save, Globe, Phone, Mail, MapPin, Building, CreditCard, Receipt, Activity, User, Image } from 'lucide-react';
 import { dataService } from '../services/dataService';
 import { Settings as SettingsType } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -154,7 +154,29 @@ const Settings = () => {
                                 <h2 className="text-xl font-bold text-slate-800">Company Information</h2>
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Company Logo</label>
+                                    <div className="flex items-center gap-4 p-4 bg-slate-50/50 rounded-xl border border-slate-200 border-dashed">
+                                        <div className="w-20 h-20 rounded-lg bg-white border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                                            {settings?.company_logo_url ? (
+                                                <img src={settings.company_logo_url} alt="Logo" className="w-full h-full object-contain" />
+                                            ) : (
+                                                <Image className="text-slate-300" size={32} />
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-xs text-slate-500 mb-2">Upload your company logo (PNG/JPG). This will appear on all generated PDF reports.</p>
+                                            <input
+                                                type="text"
+                                                placeholder="Logo URL (e.g. from Supabase Storage or external)"
+                                                className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-delaval-blue/20 outline-none"
+                                                value={settings?.company_logo_url || ''}
+                                                onChange={e => setSettings(prev => prev ? { ...prev, company_logo_url: e.target.value } : null)}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Company Name</label>
                                     <div className="relative">

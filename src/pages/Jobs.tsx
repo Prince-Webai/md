@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Calendar, User, FileText, Trash2, Pencil, Wrench, Activity, Plus, ArrowRight, Package } from 'lucide-react';
+import { Search, Calendar, User, FileText, Trash2, Pencil, Wrench, Activity, Plus, ArrowRight, Package, AlertCircle } from 'lucide-react';
 import { Job, Customer } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
@@ -7,12 +7,14 @@ import ConfirmModal from '../components/ConfirmModal';
 import DatePicker from '../components/DatePicker';
 import SearchableSelect from '../components/SearchableSelect';
 import { dataService } from '../services/dataService';
+import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 
 const Jobs = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { showToast } = useToast();
     const isAdmin = user?.user_metadata?.role !== 'Engineer';
     const [jobs, setJobs] = useState<Job[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -25,6 +27,7 @@ const Jobs = () => {
         engineer_name: '',
         service_type: '',
         status: 'Booked In',
+        priority: 'Normal',
         date_scheduled: new Date().toISOString().split('T')[0],
         notes: ''
     });
@@ -84,7 +87,9 @@ const Jobs = () => {
             engineer_name: job.engineer_name || '',
             service_type: job.service_type,
             status: job.status,
+            priority: job.priority || 'Normal',
             date_scheduled: job.date_scheduled ? job.date_scheduled.split('T')[0] : '',
+            date_completed: job.date_completed ? job.date_completed.split('T')[0] : '',
             notes: job.notes || ''
         });
         setEditingId(job.id);
@@ -117,11 +122,11 @@ const Jobs = () => {
                 setIsDeleteModalOpen(false);
                 setDeleteId(null);
             } else {
-                alert('Failed to delete job');
+                showToast('Error', 'Failed to delete job', 'error');
             }
         } catch (error) {
             console.error('Error deleting job:', error);
-            alert('Failed to delete job');
+            showToast('Error', 'Failed to delete job', 'error');
         } finally {
             setIsDeleting(false);
         }
@@ -156,8 +161,10 @@ const Jobs = () => {
                 machine_details: newJob.service_type || 'General Service',
                 problem_description: newJob.notes || null,
                 status: newJob.status || 'Booked In',
+                priority: newJob.priority || 'Normal',
                 mechanic_id: newJob.engineer_name || null,
-                date_scheduled: newJob.date_scheduled ? new Date(newJob.date_scheduled).toISOString() : null
+                date_scheduled: newJob.date_scheduled ? new Date(newJob.date_scheduled).toISOString() : null,
+                date_completed: newJob.date_completed ? new Date(newJob.date_completed).toISOString() : null
             };
 
             let jobId = editingId;
@@ -203,9 +210,10 @@ const Jobs = () => {
             });
             setModalItems([]);
 
-        } catch (error) {
+            showToast('Success', editingId ? 'Job updated successfully' : 'Job created successfully', 'success');
+        } catch (error: any) {
             console.error('Error saving job:', error);
-            alert('Failed to save job.');
+            showToast('Error', error.message || 'Failed to save job.', 'error');
         }
     };
 
@@ -249,18 +257,19 @@ const Jobs = () => {
             <div className="hidden md:block space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold font-display text-slate-900">Jobs & Services</h1>
-                        <p className="text-slate-500">Track service calls and maintenance schedules</p>
+                        <h1 className="text-2xl font-bold font-display text-slate-900">Pipeline Overview</h1>
+                        <p className="text-slate-500">Track and manage active service calls</p>
                     </div>
                 </div>
 
                 <div className="section-card">
                     <div className="flex flex-col sm:flex-row justify-between items-center p-6 border-b border-slate-100 gap-4">
-                        <h2 className="text-lg font-bold text-slate-900">Job List</h2>
+                        <h2 className="text-lg font-bold text-slate-900">Pipeline</h2>
                         <div className="flex gap-2 w-full sm:w-auto">
                             <button className="btn btn-secondary text-sm">Export</button>
                             {isAdmin && (
                                 <button onClick={() => {
+                                    // ... existing state resets
                                     setEditingId(null);
                                     setNewJob({
                                         customer_id: '',
@@ -273,7 +282,7 @@ const Jobs = () => {
                                     setModalItems([]);
                                     setIsModalOpen(true);
                                 }} className="btn btn-primary text-sm shadow-md shadow-green-900/10">
-                                    + New Job
+                                    + New Entry
                                 </button>
                             )}
                         </div>
@@ -392,7 +401,7 @@ const Jobs = () => {
 
                 {/* Page Title & Add Button - Adjusted for global header visibility */}
                 <div className="px-5 pt-6 pb-2 flex justify-between items-center">
-                    <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Jobs</h1>
+                    <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Pipeline</h1>
                     {isAdmin && (
                         <button
                             onClick={() => {
@@ -455,9 +464,25 @@ const Jobs = () => {
                     ) : (
                         filteredJobs.map((job) => (
                             <Link key={job.id} to={`/jobs/${job.id}`} className="block bg-white border border-slate-100 rounded-[1.25rem] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.02)] active:scale-[0.99] transition-transform">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="text-[11px] font-bold text-slate-400 tracking-wider">#{job.job_number}</div>
-                                    <div className="flex items-center gap-1.5">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <div className="text-[11px] font-bold text-slate-400 tracking-wider">#{job.job_number}</div>
+                                            {job.priority && job.priority !== 'Normal' && (
+                                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${job.priority === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                                                    }`}>
+                                                    {job.priority}
+                                                </span>
+                                            )}
+                                            {job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date() && (
+                                                <span className="px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider">
+                                                    Overdue
+                                                </span>
+                                            )}
+                                        </div>
+                                        <h3 className="font-bold text-slate-900 text-base leading-tight pr-2 line-clamp-1">{job.customers?.name || 'Unknown Customer'}</h3>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 pt-1">
                                         {job.status === 'Completed' && <><div className="w-1.5 h-1.5 rounded-full bg-[#14A637]"></div><span className="text-[10px] font-bold uppercase tracking-wider text-[#14A637]">COMPLETED</span></>}
                                         {job.status === 'In Progress' && <><div className="w-1.5 h-1.5 rounded-full bg-[#FF6B00]"></div><span className="text-[10px] font-bold uppercase tracking-wider text-[#FF6B00]">IN PROGRESS</span></>}
                                         {job.status === 'Booked In' && <><div className="w-1.5 h-1.5 rounded-full bg-[#0A8043]"></div><span className="text-[10px] font-bold uppercase tracking-wider text-[#0A8043]">BOOKED IN</span></>}
@@ -587,7 +612,7 @@ const Jobs = () => {
                             </div>
 
                             <div className="col-span-1">
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
                                 <DatePicker
                                     required
                                     value={newJob.date_scheduled || ''}
@@ -595,9 +620,32 @@ const Jobs = () => {
                                 />
                             </div>
 
+                            <div className="col-span-1">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
+                                <DatePicker
+                                    value={newJob.date_completed || ''}
+                                    onChange={(date) => setNewJob({ ...newJob, date_completed: date })}
+                                />
+                            </div>
+
+                            <div className="col-span-1">
+                                <SearchableSelect
+                                    label="Priority"
+                                    searchable={false}
+                                    options={[
+                                        { value: 'Normal', label: 'Normal' },
+                                        { value: 'Urgent', label: 'Urgent' },
+                                        { value: 'Overdue', label: 'Overdue' }
+                                    ]}
+                                    value={newJob.priority || 'Normal'}
+                                    onChange={val => setNewJob({ ...newJob, priority: val as Job['priority'] })}
+                                    icon={<AlertCircle size={16} className={newJob.priority === 'Urgent' ? 'text-red-500' : newJob.priority === 'Overdue' ? 'text-red-600' : 'text-slate-400'} />}
+                                />
+                            </div>
+
                             <div className="col-span-2">
                                 <SearchableSelect
-                                    label="Status"
+                                    label="Pipeline"
                                     searchable={false}
                                     options={[
                                         { value: 'Booked In', label: 'Booked In' },
@@ -788,7 +836,7 @@ const Jobs = () => {
                                     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                                         <div className="flex items-center gap-2 mb-2 text-[#0A8043]">
                                             <Calendar size={16} />
-                                            <span className="font-bold text-sm">Date</span>
+                                            <span className="font-bold text-sm">Start Date</span>
                                         </div>
                                         <input
                                             type="date"
@@ -799,9 +847,21 @@ const Jobs = () => {
                                         />
                                     </div>
                                     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                                        <div className="flex items-center gap-2 mb-2 text-delaval-blue">
+                                            <Calendar size={16} />
+                                            <span className="font-bold text-sm">End Date</span>
+                                        </div>
+                                        <input
+                                            type="date"
+                                            className="w-full text-slate-900 font-medium text-sm outline-none bg-transparent"
+                                            value={newJob.date_completed || ''}
+                                            onChange={(e) => setNewJob({ ...newJob, date_completed: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                                         <div className="flex items-center gap-2 mb-2 text-[#FF6B00]">
                                             <Activity size={16} />
-                                            <span className="font-bold text-sm">Status</span>
+                                            <span className="font-bold text-sm">Pipeline</span>
                                         </div>
                                         <select
                                             className="w-full text-slate-900 font-medium text-sm outline-none bg-transparent appearance-none"
@@ -815,6 +875,21 @@ const Jobs = () => {
                                             <option value="Ready for Collection">Ready for Collection</option>
                                             <option value="Completed">Completed</option>
                                             <option value="Closed">Closed</option>
+                                        </select>
+                                    </div>
+                                    <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                                        <div className="flex items-center gap-2 mb-2 text-red-600">
+                                            <AlertCircle size={16} />
+                                            <span className="font-bold text-sm">Priority</span>
+                                        </div>
+                                        <select
+                                            className="w-full text-slate-900 font-medium text-sm outline-none bg-transparent appearance-none"
+                                            value={newJob.priority || 'Normal'}
+                                            onChange={e => setNewJob({ ...newJob, priority: e.target.value as Job['priority'] })}
+                                        >
+                                            <option value="Normal">Normal</option>
+                                            <option value="Urgent">Urgent</option>
+                                            <option value="Overdue">Overdue</option>
                                         </select>
                                     </div>
                                 </div>

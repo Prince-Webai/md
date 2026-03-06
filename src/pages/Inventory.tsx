@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
-import { Plus, Search, Package, CheckCircle, Clock, Tag, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Trash2, Package, Tag, Layers, Edit, Filter, AlertCircle, Clock, CheckCircle, Pencil } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import { InventoryItem } from '../types';
 import Modal from '../components/Modal';
@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 
 const Inventory = () => {
     const { user } = useAuth();
+    const { showToast } = useToast();
     const isAdmin = user?.user_metadata?.role !== 'Engineer';
     const [items, setItems] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -50,14 +51,17 @@ const Inventory = () => {
                 setItems(items.filter(i => i.id !== deleteId));
                 setIsDeleteModalOpen(false);
                 setDeleteId(null);
+                showToast('Success', 'Item deleted', 'success');
             } else {
-                alert('Failed to delete item');
+                showToast('Error', 'Failed to delete item', 'error');
             }
         } catch (error) {
             console.error('Error deleting item:', error);
-            alert('Failed to delete item');
+            showToast('Error', 'Failed to delete item', 'error');
         } finally {
             setIsDeleting(false);
+            setDeleteId(null);
+            setIsDeleteModalOpen(false);
         }
     };
 
@@ -155,9 +159,10 @@ const Inventory = () => {
                 low_stock_threshold: 5,
                 location: ''
             });
-        } catch (error) {
+            showToast('Success', editingId ? 'Item updated' : 'Item added', 'success');
+        } catch (error: any) {
             console.error('Error saving item:', error);
-            alert('Failed to save item');
+            showToast('Error', error.message || 'Failed to save item', 'error');
         }
     };
 

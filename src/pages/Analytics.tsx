@@ -30,7 +30,7 @@ const Analytics = () => {
             const completedJobs = jobs.filter((j: any) => j.status === 'Completed').length;
             const completionRate = jobs.length > 0 ? Math.round((completedJobs / jobs.length) * 100) : 0;
 
-            // 2. Pipeline Status Distribution
+            // 2. Pipeline Stage Distribution
             const statusCounts: any = {};
             jobs.forEach((j: any) => {
                 const status = j.status || 'Booked In';
@@ -186,9 +186,9 @@ const Analytics = () => {
                     </div>
                 </div>
 
-                {/* Pipeline Status */}
+                {/* Pipeline Distribution */}
                 <div className="section-card p-8">
-                    <h2 className="text-lg font-black text-slate-900 mb-1">Pipeline Status</h2>
+                    <h2 className="text-lg font-black text-slate-900 mb-1">Pipeline</h2>
                     <p className="text-sm font-medium text-slate-400 mb-6">Distribution by job stage</p>
                     <div className="h-[250px] w-full relative">
                         {loading ? (

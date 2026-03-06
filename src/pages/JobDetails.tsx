@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle, Download, Printer, UserCheck, FileCheck } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle, Download, Printer, UserCheck, FileCheck, AlertCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import SearchableSelect from '../components/SearchableSelect';
+import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
 import { Job, JobItem, InventoryItem, Settings } from '../types';
 import { dataService } from '../services/dataService';
 
 const JobDetails = () => {
+    const { showToast } = useToast();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [job, setJob] = useState<Job | null>(null);
@@ -21,6 +23,7 @@ const JobDetails = () => {
         type: 'part' as 'part' | 'labor'
     });
 
+    const [currentTime, setCurrentTime] = useState(new Date().getTime());
     const [timerStatus, setTimerStatus] = useState<'stopped' | 'running' | 'paused'>('stopped');
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -46,16 +49,27 @@ const JobDetails = () => {
 
     // Live timer ticking
     useEffect(() => {
-        let interval: NodeJS.Timeout;
-        if (timerStatus === 'running') {
-            interval = setInterval(() => {
+        const interval = setInterval(() => {
+            setCurrentTime(new Date().getTime());
+            if (timerStatus === 'running') {
                 setElapsedSeconds(prev => prev + 1);
-            }, 1000);
-        }
+            }
+        }, 1000);
         return () => clearInterval(interval);
     }, [timerStatus]);
 
     const formatTime = (totalSeconds: number) => {
+        if (job?.date_completed) {
+            const end = new Date(job.date_completed).getTime();
+            const diff = Math.floor((end - currentTime) / 1000);
+            const absoluteSeconds = Math.abs(diff);
+            const hrs = Math.floor(absoluteSeconds / 3600);
+            const mins = Math.floor((absoluteSeconds % 3600) / 60);
+            const secs = absoluteSeconds % 60;
+            const timeString = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            return diff < 0 ? `-${timeString}` : timeString;
+        }
+
         const totalHoursSoFar = (job?.total_hours_worked || 0) + (totalSeconds / 3600);
         const hrs = Math.floor(totalHoursSoFar);
         const mins = Math.floor((totalHoursSoFar - hrs) * 60);
@@ -66,9 +80,16 @@ const JobDetails = () => {
     const handleStartTimer = async () => {
         if (!job) return;
         const now = new Date().toISOString();
-        const { error } = await supabase.from('jobs').update({ timer_status: 'running', timer_started_at: now }).eq('id', job.id);
+        const updates: any = { timer_status: 'running', timer_started_at: now };
+
+        // Record actual start time if it's the first time starting the timer
+        if (!job.actual_start_time) {
+            updates.actual_start_time = now;
+        }
+
+        const { error } = await supabase.from('jobs').update(updates).eq('id', job.id);
         if (!error) {
-            setJob({ ...job, timer_status: 'running', timer_started_at: now });
+            setJob({ ...job, ...updates });
         }
     };
 
@@ -98,9 +119,20 @@ const JobDetails = () => {
         if (timerStatus === 'running') {
             await handlePauseTimer();
         }
-        const { error } = await supabase.from('jobs').update({ status: 'Completed', timer_status: 'stopped' }).eq('id', job.id);
+        const now = new Date().toISOString();
+        const { error } = await supabase.from('jobs').update({
+            status: 'Completed',
+            timer_status: 'stopped',
+            actual_end_time: now
+        }).eq('id', job.id);
+
         if (!error) {
-            setJob(prev => prev ? { ...prev, status: 'Completed', timer_status: 'stopped' } : null);
+            setJob(prev => prev ? {
+                ...prev,
+                status: 'Completed',
+                timer_status: 'stopped',
+                actual_end_time: now
+            } : null);
         }
     };
 
@@ -165,7 +197,7 @@ const JobDetails = () => {
                 setNewItem({ description: '', quantity: 1, unit_price: 0, type: 'part' });
             }
         } catch (error: any) {
-            alert('Error adding item: ' + error.message);
+            showToast('Error', 'Error adding item: ' + error.message, 'error');
         }
     };
 
@@ -183,27 +215,52 @@ const JobDetails = () => {
                 company_name: 'MD Burke Ltd',
                 company_address: 'Workshop Address',
                 company_phone: 'Professional Service',
-                company_email: 'service@mdburke.ie'
+                company_email: 'service@mdburke.ie',
+                company_logo_url: ''
             };
 
             const doc = new jsPDF();
             const primaryColor: [number, number, number] = [10, 128, 67]; // DeLaval Green
 
+            // Helper to add logo if exists
+            const addLogo = async (doc: any) => {
+                if (s.company_logo_url) {
+                    try {
+                        const img = new Image();
+                        img.src = s.company_logo_url;
+                        await new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = reject;
+                        });
+                        doc.addImage(img, 'PNG', 14, 10, 30, 30);
+                        return true;
+                    } catch (e) {
+                        console.error('Logo load failed', e);
+                        return false;
+                    }
+                }
+                return false;
+            };
+
             // --- Header Layout (Professional Invoice Style) ---
             doc.setFillColor(248, 250, 251); // Light slate background for header
             doc.rect(0, 0, 210, 45, 'F');
 
+            const hasLogo = await addLogo(doc);
+
             // Branding
-            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.setFontSize(28);
-            doc.setFont('helvetica', 'bold');
-            doc.text(s.company_name.toUpperCase(), 14, 25);
+            if (!hasLogo) {
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.setFontSize(24);
+                doc.setFont('helvetica', 'bold');
+                doc.text(s.company_name.toUpperCase(), 14, 25);
+            }
 
             doc.setTextColor(100, 100, 100);
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            doc.text(s.company_address || '', 14, 32);
-            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, 14, 37);
+            doc.text(s.company_address || '', hasLogo ? 48 : 14, hasLogo ? 18 : 32);
+            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, hasLogo ? 48 : 14, hasLogo ? 23 : 37);
 
             // Document Info
             doc.setTextColor(0, 0, 0);
@@ -278,10 +335,10 @@ const JobDetails = () => {
             doc.text(`Ref: ${job.id}`, 196, pageHeight - 20, { align: 'right' });
 
             doc.save(`JobSheet_${job.job_number}.pdf`);
-            alert('Job Sheet successfully generated!');
+            showToast('Success', 'Job Sheet successfully generated!', 'success');
         } catch (error: any) {
             console.error('PDF Error:', error);
-            alert('Error generating PDF: ' + error.message);
+            showToast('Error', 'Error generating PDF: ' + error.message, 'error');
         } finally {
             setIsGenerating(false);
         }
@@ -295,26 +352,51 @@ const JobDetails = () => {
                 company_name: 'MD Burke Ltd',
                 company_address: 'Workshop Address',
                 company_phone: 'Professional Service',
-                company_email: 'service@mdburke.ie'
+                company_email: 'service@mdburke.ie',
+                company_logo_url: ''
             };
 
             const doc = new jsPDF();
             const primaryColor: [number, number, number] = [10, 128, 67];
 
+            // Helper to add logo if exists
+            const addLogo = async (doc: any) => {
+                if (s.company_logo_url) {
+                    try {
+                        const img = new Image();
+                        img.src = s.company_logo_url;
+                        await new Promise((resolve, reject) => {
+                            img.onload = resolve;
+                            img.onerror = reject;
+                        });
+                        doc.addImage(img, 'PNG', 14, 10, 30, 30);
+                        return true;
+                    } catch (e) {
+                        console.error('Logo load failed', e);
+                        return false;
+                    }
+                }
+                return false;
+            };
+
             // --- Header (Premium Layout) ---
             doc.setFillColor(248, 250, 251);
             doc.rect(0, 0, 210, 50, 'F');
 
-            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.setFontSize(28);
-            doc.setFont('helvetica', 'bold');
-            doc.text(s.company_name.toUpperCase(), 14, 25);
+            const hasLogo = await addLogo(doc);
+
+            if (!hasLogo) {
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.setFontSize(24);
+                doc.setFont('helvetica', 'bold');
+                doc.text(s.company_name.toUpperCase(), 14, 25);
+            }
 
             doc.setTextColor(100, 100, 100);
-            doc.setFontSize(10);
+            doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            doc.text(s.company_address || '', 14, 32);
-            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, 14, 37);
+            doc.text(s.company_address || '', hasLogo ? 48 : 14, hasLogo ? 18 : 32);
+            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, hasLogo ? 48 : 14, hasLogo ? 23 : 37);
 
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(18);
@@ -406,7 +488,7 @@ const JobDetails = () => {
 
             // Save locally
             doc.save(`CompletionReport_${job.job_number}.pdf`);
-            alert('Completion Report successfully generated!');
+            showToast('Success', 'Completion Report successfully generated!', 'success');
 
             // Update database with report details (no PDF URL)
             await supabase.from('jobs').update({
@@ -416,7 +498,7 @@ const JobDetails = () => {
 
         } catch (error: any) {
             console.error('PDF Error:', error);
-            alert('Error generating Completion Report: ' + error.message);
+            showToast('Error', 'Error generating Completion Report: ' + error.message, 'error');
         } finally {
             setIsGenerating(false);
         }
@@ -580,32 +662,58 @@ const JobDetails = () => {
                     <div className="space-y-6">
                         <div className="section-card p-6">
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-lg font-bold">Job Details</h2>
-                                <div className={`text-xl font-bold font-mono px-3 py-1.5 rounded-lg flex items-center gap-2 shadow-sm border ${timerStatus === 'running' ? 'bg-[#1a1a1a] text-[#E6F4EA] border-slate-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-                                    <Clock size={16} className={timerStatus === 'running' ? 'animate-pulse text-[#0A8043]' : ''} />
-                                    {formatTime(timerStatus === 'running' ? elapsedSeconds : 0)}
+                                <h2 className="text-lg font-bold text-slate-900">Job Control</h2>
+                                <div className={`px-4 py-2 rounded-xl flex items-center gap-3 shadow-md border animate-in fade-in transition-all duration-500 ${job.status === 'Completed' ? 'bg-[#E6F4EA] border-[#0A8043]/20 text-[#0A8043]' : job.date_completed ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                                            {job.status === 'Completed' ? 'Pipeline' : job.date_completed ? 'Remaining Time' : 'Total Labour'}
+                                        </span>
+                                        <div className="text-xl font-black font-mono flex items-center gap-2">
+                                            {job.status === 'Completed' ? (
+                                                <div className="flex items-center gap-2">
+                                                    <CheckCircle size={18} />
+                                                    <span>COMPLETED</span>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <Clock size={18} className={timerStatus === 'running' ? 'animate-pulse text-[#0A8043]' : ''} />
+                                                    {formatTime(timerStatus === 'running' ? elapsedSeconds : 0)}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                {/* Timer Controls */}
+                                {/* Job Controls - Priority & Completion */}
                                 {job.status !== 'Completed' && (
-                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between gap-3">
-                                        <div className="flex-1">
-                                            {timerStatus !== 'running' ? (
-                                                <button onClick={handleStartTimer} className="w-full flex justify-center items-center gap-2 bg-[#E6F4EA] text-[#0A8043] hover:bg-[#C1E7CD] py-2.5 rounded-lg font-bold transition-all shadow-sm border border-[#0A8043]/20">
-                                                    <Play size={18} /> Start Timer
-                                                </button>
-                                            ) : (
-                                                <button onClick={handlePauseTimer} className="w-full flex justify-center items-center gap-2 bg-[#FFC107] text-slate-900 hover:bg-[#E0A800] py-2.5 rounded-lg font-bold transition-all shadow-sm">
-                                                    <Pause size={18} /> Pause Timer
-                                                </button>
-                                            )}
+                                    <div className="bg-white p-5 rounded-2xl border border-slate-100 space-y-5 shadow-sm">
+                                        <div className="flex flex-col">
+                                            <SearchableSelect
+                                                label="Pipeline Priority"
+                                                searchable={false}
+                                                options={[
+                                                    { value: 'Normal', label: 'Normal' },
+                                                    { value: 'Urgent', label: 'Urgent' },
+                                                    { value: 'Overdue', label: 'Overdue' }
+                                                ]}
+                                                value={job.priority || 'Normal'}
+                                                onChange={async (val) => {
+                                                    const p = val as 'Normal' | 'Urgent' | 'Overdue';
+                                                    const { error } = await supabase.from('jobs').update({ priority: p }).eq('id', job.id);
+                                                    if (!error) setJob({ ...job, priority: p });
+                                                }}
+                                                icon={<AlertCircle size={16} className={job.priority === 'Urgent' ? 'text-red-500' : job.priority === 'Overdue' ? 'text-red-600' : 'text-slate-400'} />}
+                                            />
                                         </div>
-                                        <div className="flex-1">
-                                            <button onClick={handleCompleteJob} className="w-full flex justify-center items-center gap-2 bg-[#0A8043] text-white hover:bg-[#065F30] py-2.5 rounded-lg font-bold transition-all shadow-sm">
-                                                <CheckCircle size={18} /> Complete Job
-                                            </button>
-                                        </div>
+
+                                        <button
+                                            onClick={handleCompleteJob}
+                                            className="w-full flex justify-center items-center gap-2 bg-[#0A8043] text-white hover:bg-[#065F30] py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 group"
+                                        >
+                                            <CheckCircle size={20} className="group-hover:scale-110 transition-transform" />
+                                            Mark Job as Completed
+                                        </button>
                                     </div>
                                 )}
 
@@ -649,7 +757,7 @@ const JobDetails = () => {
                                 )}
 
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-500 mb-2">Status</label>
+                                    <label className="block text-sm font-medium text-slate-500 mb-2">Pipeline</label>
                                     {job.status === 'Completed' ? (
                                         <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-2.5 rounded-lg border border-green-200 font-medium w-full">
                                             <CheckCircle size={18} /> Completed
@@ -757,9 +865,9 @@ const JobDetails = () => {
                         </div>
                     </div>
 
-                    {/* Status Update */}
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Current Status</label>
+                    {/* Pipeline Update */}
+                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-inner">
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pipeline</label>
                         {job.status === 'Completed' ? (
                             <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-3 rounded-lg border border-green-200 font-bold">
                                 <CheckCircle size={18} /> Completed

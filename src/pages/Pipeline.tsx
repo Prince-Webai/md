@@ -86,6 +86,7 @@ const Pipeline = () => {
   const [loading, setLoading] = useState(true);
   const [engineers, setEngineers] = useState<any[]>([]);
   const [selectedEngineer, setSelectedEngineer] = useState<string>('all');
+  const [selectedPriority, setSelectedPriority] = useState<string>('all');
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -196,7 +197,13 @@ const Pipeline = () => {
     return (
       jobs
         .filter((job) => job.status === status)
-        // Sort by date inside the column conceptually, or just preserve array order
+        .filter((job) => {
+          if (selectedPriority === 'all') return true;
+          if (selectedPriority === 'Overdue') {
+            return job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date();
+          }
+          return job.priority === selectedPriority;
+        })
         .sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
@@ -221,24 +228,45 @@ const Pipeline = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Job Pipeline</h1>
           <p className="text-slate-500 mt-1">
-            Drag and drop jobs to update their status
+            Drag and drop jobs to update their pipeline position
           </p>
         </div>
-        {isAdmin && (
-          <div className="w-64">
-            <SearchableSelect
-              label="Filter by Engineer"
-              options={[
-                { value: 'all', label: 'All Engineers' },
-                ...engineers.map(eng => ({ value: eng.name, label: eng.name }))
-              ]}
-              value={selectedEngineer}
-              onChange={(val) => setSelectedEngineer(val)}
-              searchable={false}
-              icon={<Filter size={16} />}
-            />
+        <div className="flex gap-4">
+          {isAdmin && (
+            <div className="w-64">
+              <SearchableSelect
+                label="Filter by Engineer"
+                options={[
+                  { value: 'all', label: 'All Engineers' },
+                  ...engineers.map(eng => ({ value: eng.name, label: eng.name }))
+                ]}
+                value={selectedEngineer}
+                onChange={(val) => setSelectedEngineer(val)}
+                searchable={false}
+                icon={<Filter size={16} />}
+              />
+            </div>
+          )}
+          <div className="flex flex-col gap-1.5 min-w-[320px]">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Filter by Priority</label>
+            <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+              {[
+                { value: 'all', label: 'All' },
+                { value: 'Normal', label: 'Normal' },
+                { value: 'Urgent', label: 'Urgent' },
+                { value: 'Overdue', label: 'Overdue' }
+              ].map((p) => (
+                <button
+                  key={p.value}
+                  onClick={() => setSelectedPriority(p.value)}
+                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${selectedPriority === p.value ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {showSlider && (
@@ -308,10 +336,22 @@ const Pipeline = () => {
                                   }`}
                               >
                                 <div className="flex justify-between items-start mb-2">
-                                  <span className="text-xs font-bold text-slate-400">
-                                    #
-                                    {job.job_number.toString().padStart(4, "0")}
-                                  </span>
+                                  <div className="flex flex-col">
+                                    <span className="text-xs font-bold text-slate-400 mb-1">
+                                      #{job.job_number.toString().padStart(4, "0")}
+                                    </span>
+                                    {job.priority && job.priority !== 'Normal' && (
+                                      <span className={`inline-flex w-fit px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${job.priority === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
+                                        }`}>
+                                        {job.priority}
+                                      </span>
+                                    )}
+                                    {job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date() && (
+                                      <span className="inline-flex w-fit mt-1 px-1.5 py-0.5 rounded bg-red-600 text-white text-[9px] font-bold uppercase tracking-wider">
+                                        Overdue
+                                      </span>
+                                    )}
+                                  </div>
                                   {job.date_scheduled && (
                                     <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
                                       {new Date(

@@ -4,10 +4,13 @@ import { Link } from 'react-router-dom';
 import { dataService } from '../services/dataService';
 import { Job, Customer } from '../types';
 import Modal from '../components/Modal';
+import { useToast } from '../context/ToastContext';
+import SearchableSelect from '../components/SearchableSelect';
 import DatePicker from '../components/DatePicker';
 import { useAuth } from '../context/AuthContext';
 
 const CalendarPage = () => {
+    const { showToast } = useToast();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [jobs, setJobs] = useState<Job[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
@@ -64,7 +67,7 @@ const CalendarPage = () => {
             });
         } catch (error) {
             console.error('Error creating job:', error);
-            alert('Failed to create job.');
+            showToast('Error', 'Failed to create job.', 'error');
         }
     };
 
@@ -401,7 +404,7 @@ const CalendarPage = () => {
                 <div className="space-y-4">
                     {/* Legend */}
                     <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm">
-                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Status Legend</h3>
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Pipeline Legend</h3>
                         <div className="grid grid-cols-2 gap-2.5">
                             {Object.entries(statusConfig).map(([, cfg]) => (
                                 <div key={cfg.label} className="flex items-center gap-2">

@@ -46,7 +46,12 @@ export interface Job {
     // Timer fields
     timer_status?: 'stopped' | 'running' | 'paused';
     timer_started_at?: string;
+    actual_start_time?: string;
+    actual_end_time?: string;
     total_hours_worked?: number;
+
+    // Pipeline fields
+    priority?: 'Normal' | 'Urgent' | 'Overdue';
 
     // Report fields
     recommendations?: string;
@@ -161,5 +166,6 @@ export interface Settings {
     bic: string;
     vat_reg_number: string;
     webhook_url: string;
+    company_logo_url?: string;
     updated_at: string;
 }
