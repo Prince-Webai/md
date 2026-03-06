@@ -198,9 +198,17 @@ const JobDetails = () => {
     };
 
     const generateJobSheet = async () => {
-        if (!job || !settings) return;
+        if (!job) return;
         setIsGenerating(true);
         try {
+            // Use current settings or fallback defaults
+            const s = settings || {
+                company_name: 'MD Burke Ltd',
+                company_address: 'Workshop Address',
+                company_phone: 'Professional Service',
+                company_email: 'service@mdburke.ie'
+            };
+
             const doc = new jsPDF();
             const primaryColor: [number, number, number] = [10, 128, 67]; // DeLaval Green
 
@@ -216,10 +224,10 @@ const JobDetails = () => {
 
             // Company info (Right aligned)
             doc.setFontSize(10);
-            doc.text(settings.company_name, 196, 15, { align: 'right' });
+            doc.text(s.company_name, 196, 15, { align: 'right' });
             doc.setFont('helvetica', 'normal');
-            doc.text(settings.company_address, 196, 20, { align: 'right' });
-            doc.text(`Tel: ${settings.company_phone}`, 196, 25, { align: 'right' });
+            doc.text(s.company_address || '', 196, 20, { align: 'right' });
+            doc.text(`Tel: ${s.company_phone || ''}`, 196, 25, { align: 'right' });
 
             // Content
             doc.setTextColor(0, 0, 0);
@@ -262,17 +270,25 @@ const JobDetails = () => {
             if (url) {
                 await supabase.from('jobs').update({ job_sheet_pdf_url: url }).eq('id', job.id);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('PDF Generation Error:', error);
+            alert('Could not generate PDF: ' + error.message);
         } finally {
             setIsGenerating(false);
         }
     };
 
     const generateCompletionReport = async () => {
-        if (!job || !settings) return;
+        if (!job) return;
         setIsGenerating(true);
         try {
+            const s = settings || {
+                company_name: 'MD Burke Ltd',
+                company_address: 'Workshop Address',
+                company_phone: 'Professional Service',
+                company_email: 'service@mdburke.ie'
+            };
+
             const doc = new jsPDF();
             const primaryColor: [number, number, number] = [10, 128, 67];
 
@@ -287,10 +303,10 @@ const JobDetails = () => {
             doc.text(`Job Number: #${job.job_number} | Filterable ID: ${job.id.substring(0, 8)}`, 14, 33);
 
             // Company info
-            doc.text(settings.company_name, 196, 15, { align: 'right' });
+            doc.text(s.company_name, 196, 15, { align: 'right' });
             doc.setFont('helvetica', 'normal');
-            doc.text(settings.company_address, 196, 20, { align: 'right' });
-            doc.text(`Email: ${settings.company_email}`, 196, 25, { align: 'right' });
+            doc.text(s.company_address || '', 196, 20, { align: 'right' });
+            doc.text(`Email: ${s.company_email || ''}`, 196, 25, { align: 'right' });
 
             doc.setTextColor(0, 0, 0);
 
@@ -362,8 +378,9 @@ const JobDetails = () => {
                     mechanic_sign_off_name: mechanicSignOff
                 }).eq('id', job.id);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('PDF Generation Error:', error);
+            alert('Could not generate completion report: ' + (error.message || error));
         } finally {
             setIsGenerating(false);
         }
