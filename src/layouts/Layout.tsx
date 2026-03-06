@@ -80,7 +80,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <img
                             src={logoImg}
                             alt="MD Burke"
-                            className="h-[35px] md:h-[65px] w-auto scale-[1.4] md:scale-[1.95] origin-left brightness-0 invert md:brightness-100 md:invert-0 md:mix-blend-multiply transition-transform duration-300"
+                            className="h-[50px] md:h-[150px] w-auto origin-left brightness-0 invert md:brightness-100 md:invert-0 md:mix-blend-multiply transition-all duration-300"
                         />
                     </div>
 
