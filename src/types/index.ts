@@ -48,6 +48,12 @@ export interface Job {
     timer_started_at?: string;
     total_hours_worked?: number;
 
+    // Report fields
+    recommendations?: string;
+    mechanic_sign_off_name?: string;
+    job_sheet_pdf_url?: string;
+    completion_report_pdf_url?: string;
+
     // Joins
     customers?: Customer;
     job_items?: JobItem[];

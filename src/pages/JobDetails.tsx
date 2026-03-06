@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle, Download, Printer, UserCheck, FileCheck } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import SearchableSelect from '../components/SearchableSelect';
 import { supabase } from '../lib/supabase';
-import { Job, JobItem, InventoryItem } from '../types';
+import { Job, JobItem, InventoryItem, Settings } from '../types';
+import { dataService } from '../services/dataService';
 
 const JobDetails = () => {
     const { id } = useParams<{ id: string }>();
@@ -20,6 +23,12 @@ const JobDetails = () => {
 
     const [timerStatus, setTimerStatus] = useState<'stopped' | 'running' | 'paused'>('stopped');
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+    // Report State
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [recommendations, setRecommendations] = useState('');
+    const [mechanicSignOff, setMechanicSignOff] = useState('');
+    const [settings, setSettings] = useState<Settings | null>(null);
 
     // Refresh timer logic when job updates
     useEffect(() => {
@@ -100,8 +109,14 @@ const JobDetails = () => {
             fetchJobDetails();
             fetchJobItems();
             fetchInventory();
+            loadSettings();
         }
     }, [id]);
+
+    const loadSettings = async () => {
+        const s = await dataService.getSettings();
+        setSettings(s);
+    };
 
     const fetchJobDetails = async () => {
         const { data, error } = await supabase
@@ -111,7 +126,11 @@ const JobDetails = () => {
             .single();
 
         if (error) console.error('Error fetching job:', error);
-        else setJob(data);
+        else {
+            setJob(data);
+            setRecommendations(data.recommendations || '');
+            setMechanicSignOff(data.mechanic_sign_off_name || '');
+        }
     };
 
     const fetchJobItems = async () => {
@@ -155,6 +174,200 @@ const JobDetails = () => {
         if (!error) setItems(items.filter(i => i.id !== itemId));
     };
 
+    const uploadPDFToStorage = async (doc: jsPDF, fileName: string) => {
+        try {
+            const pdfBlob = doc.output('blob');
+            const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+            const filePath = `${job?.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('job-documents')
+                .upload(filePath, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('job-documents')
+                .getPublicUrl(filePath);
+
+            return data.publicUrl;
+        } catch (error) {
+            console.error('Error uploading PDF:', error);
+            return null;
+        }
+    };
+
+    const generateJobSheet = async () => {
+        if (!job || !settings) return;
+        setIsGenerating(true);
+        try {
+            const doc = new jsPDF();
+            const primaryColor: [number, number, number] = [10, 128, 67]; // DeLaval Green
+
+            // Header
+            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.setFont('helvetica', 'bold');
+            doc.text('JOB WORKSHEET', 14, 25);
+            doc.setFontSize(10);
+            doc.text(`Job Number: #${job.job_number}`, 14, 32);
+
+            // Company info (Right aligned)
+            doc.setFontSize(10);
+            doc.text(settings.company_name, 196, 15, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(settings.company_address, 196, 20, { align: 'right' });
+            doc.text(`Tel: ${settings.company_phone}`, 196, 25, { align: 'right' });
+
+            // Content
+            doc.setTextColor(0, 0, 0);
+            doc.setFont('helvetica', 'bold');
+            doc.text('CUSTOMER DETAILS', 14, 50);
+            doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.line(14, 52, 60, 52);
+
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Name: ${job.customers?.name}`, 14, 60);
+            doc.text(`Address: ${job.customers?.address || 'N/A'}`, 14, 65);
+            doc.text(`Phone: ${job.customers?.phone || 'N/A'}`, 14, 70);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('EQUIPMENT / PROBLEM', 14, 85);
+            doc.line(14, 87, 65, 87);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Machine: ${job.machine_details || 'N/A'}`, 14, 95);
+            doc.text('Description:', 14, 100);
+            const splitProblem = doc.splitTextToSize(job.problem_description || 'No description provided.', 180);
+            doc.text(splitProblem, 14, 105);
+
+            // Parts Reserved/Used
+            doc.setFont('helvetica', 'bold');
+            doc.text('PARTS / MATERIALS', 14, 130);
+            autoTable(doc, {
+                startY: 135,
+                head: [['Description', 'Qty']],
+                body: items.filter(i => i.type === 'part').map(i => [i.description, i.quantity.toString()]),
+                headStyles: { fillColor: primaryColor }
+            });
+
+            // Footer
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 285);
+
+            doc.save(`JobSheet_${job.job_number}.pdf`);
+            const url = await uploadPDFToStorage(doc, `JobSheet_${job.job_number}.pdf`);
+            if (url) {
+                await supabase.from('jobs').update({ job_sheet_pdf_url: url }).eq('id', job.id);
+            }
+        } catch (error) {
+            console.error('PDF Generation Error:', error);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const generateCompletionReport = async () => {
+        if (!job || !settings) return;
+        setIsGenerating(true);
+        try {
+            const doc = new jsPDF();
+            const primaryColor: [number, number, number] = [10, 128, 67];
+
+            // Header
+            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.rect(0, 0, 210, 45, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(22);
+            doc.setFont('helvetica', 'bold');
+            doc.text('SERVICE COMPLETION REPORT', 14, 25);
+            doc.setFontSize(10);
+            doc.text(`Job Number: #${job.job_number} | Filterable ID: ${job.id.substring(0, 8)}`, 14, 33);
+
+            // Company info
+            doc.text(settings.company_name, 196, 15, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(settings.company_address, 196, 20, { align: 'right' });
+            doc.text(`Email: ${settings.company_email}`, 196, 25, { align: 'right' });
+
+            doc.setTextColor(0, 0, 0);
+
+            //Summary
+            const completionDate = new Date().toLocaleDateString();
+            const labourHours = (job.total_hours_worked || 0).toFixed(2);
+
+            autoTable(doc, {
+                startY: 55,
+                body: [
+                    ['Customer', job.customers?.name || 'N/A'],
+                    ['Date Completed', completionDate],
+                    ['Engineer', job.engineer_name || 'N/A'],
+                    ['Labour Hours', labourHours]
+                ],
+                theme: 'plain',
+                styles: { fontSize: 10, cellPadding: 2 }
+            });
+
+            const finalSummaryY = (doc as any).lastAutoTable.finalY || 55;
+
+            // Work Done
+            doc.setFont('helvetica', 'bold');
+            doc.text('WORK PERFORMED', 14, finalSummaryY + 15);
+            const workDone = doc.splitTextToSize(job.problem_description || 'General Service', 180);
+            doc.setFont('helvetica', 'normal');
+            doc.text(workDone, 14, finalSummaryY + 22);
+
+            // Parts Table
+            const finalWorkY = finalSummaryY + 22 + (workDone.length * 5);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PARTS & MATERIALS USED', 14, finalWorkY + 10);
+
+            autoTable(doc, {
+                startY: finalWorkY + 15,
+                head: [['Part Description', 'Quantity', 'Unit Price', 'Total']],
+                body: items.filter(i => i.type === 'part').map(i => [
+                    i.description,
+                    i.quantity.toString(),
+                    `EUR ${i.unit_price.toFixed(2)}`,
+                    `EUR ${(i.quantity * i.unit_price).toFixed(2)}`
+                ]),
+                headStyles: { fillColor: primaryColor }
+            });
+
+            const finalPartsY = (doc as any).lastAutoTable.finalY || finalWorkY + 15;
+
+            // Recommendations
+            doc.setFont('helvetica', 'bold');
+            doc.text('RECOMMENDATIONS / FUTURE WORK', 14, finalPartsY + 15);
+            doc.setFont('helvetica', 'normal');
+            const recs = doc.splitTextToSize(recommendations || 'System functioning correctly. No further work required at this time.', 180);
+            doc.text(recs, 14, finalPartsY + 22);
+
+            // Sign-off
+            const finalRecsY = finalPartsY + 22 + (recs.length * 5);
+            doc.setFont('helvetica', 'bold');
+            doc.text('MECHANIC SIGN-OFF', 14, finalRecsY + 15);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Name: ${mechanicSignOff || job.engineer_name || 'N/A'}`, 14, finalRecsY + 23);
+            doc.text('Signature: __________________________', 120, finalRecsY + 23);
+
+            doc.save(`CompletionReport_${job.job_number}.pdf`);
+            const url = await uploadPDFToStorage(doc, `CompletionReport_${job.job_number}.pdf`);
+            if (url) {
+                await supabase.from('jobs').update({
+                    completion_report_pdf_url: url,
+                    recommendations,
+                    mechanic_sign_off_name: mechanicSignOff
+                }).eq('id', job.id);
+            }
+        } catch (error) {
+            console.error('PDF Generation Error:', error);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
 
 
     const [mobileTab, setMobileTab] = useState<'details' | 'parts' | 'labor'>('details');
@@ -179,6 +392,26 @@ const JobDetails = () => {
                         <p className="text-slate-500">{job.customers?.name}</p>
                     </div>
                     <div className="ml-auto flex gap-3">
+                        {job.status === 'In Progress' && (
+                            <button
+                                onClick={generateJobSheet}
+                                disabled={isGenerating}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 font-semibold hover:bg-slate-50 transition-all shadow-sm"
+                            >
+                                <Printer size={18} />
+                                {isGenerating ? 'Generating...' : 'Print Job Sheet'}
+                            </button>
+                        )}
+                        {job.status === 'Completed' && (
+                            <button
+                                onClick={generateCompletionReport}
+                                disabled={isGenerating}
+                                className="flex items-center gap-2 px-4 py-2 bg-delaval-blue text-white rounded-lg font-semibold hover:bg-delaval-dark-blue transition-all shadow-sm"
+                            >
+                                <FileCheck size={18} />
+                                {isGenerating ? 'Generating...' : 'Completion Report'}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -322,6 +555,46 @@ const JobDetails = () => {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Report Completion Info */}
+                                {job.status === 'Completed' && (
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+                                        <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                                            <Receipt size={18} className="text-[#0A8043]" />
+                                            Report Information
+                                        </h3>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Mechanic Sign-off</label>
+                                            <div className="relative">
+                                                <UserCheck className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                                <input
+                                                    type="text"
+                                                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-delaval-blue transition-all"
+                                                    placeholder="Enter mechanic name..."
+                                                    value={mechanicSignOff}
+                                                    onChange={e => setMechanicSignOff(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5 pl-1">Future Recommendations</label>
+                                            <textarea
+                                                className="w-full p-4 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-delaval-blue transition-all min-h-[100px]"
+                                                placeholder="Enter any additional advice for the customer..."
+                                                value={recommendations}
+                                                onChange={e => setRecommendations(e.target.value)}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={generateCompletionReport}
+                                            disabled={isGenerating}
+                                            className="w-full flex justify-center items-center gap-2 bg-[#1a1a1a] text-white hover:bg-black py-2.5 rounded-lg font-bold transition-all shadow-md"
+                                        >
+                                            <Download size={18} /> {isGenerating ? 'Updating PDF...' : 'Update Completion Report'}
+                                        </button>
+                                    </div>
+                                )}
+
                                 <div>
                                     <label className="block text-sm font-medium text-slate-500 mb-2">Status</label>
                                     {job.status === 'Completed' ? (
@@ -368,6 +641,35 @@ const JobDetails = () => {
                                     <label className="block text-sm font-medium text-slate-500">Job Description</label>
                                     <div className="text-slate-900 bg-slate-50 p-3 rounded-lg mt-1 text-sm">{job.notes || 'No description provided.'}</div>
                                 </div>
+
+                                {/* PDF Links */}
+                                {(job.job_sheet_pdf_url || job.completion_report_pdf_url) && (
+                                    <div className="pt-4 border-t border-slate-100 space-y-2">
+                                        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Generated Documents</h3>
+                                        {job.job_sheet_pdf_url && (
+                                            <a href={job.job_sheet_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors group">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                                                        <FileText size={16} />
+                                                    </div>
+                                                    <span className="text-sm font-medium text-slate-700">Job Worksheet</span>
+                                                </div>
+                                                <Download size={16} className="text-slate-400 group-hover:text-delaval-blue" />
+                                            </a>
+                                        )}
+                                        {job.completion_report_pdf_url && (
+                                            <a href={job.completion_report_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors group">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
+                                                        <FileCheck size={16} />
+                                                    </div>
+                                                    <span className="text-sm font-medium text-slate-700">Completion Report</span>
+                                                </div>
+                                                <Download size={16} className="text-slate-400 group-hover:text-delaval-blue" />
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -503,6 +805,14 @@ const JobDetails = () => {
                                 {/* Actions */}
                                 {job.status !== 'Completed' && (
                                     <div className="mt-6 space-y-3">
+                                        <button
+                                            onClick={generateJobSheet}
+                                            disabled={isGenerating}
+                                            className="w-full flex items-center justify-center gap-2 bg-white border border-slate-200 py-3 rounded-xl font-bold text-sm shadow-sm transition-colors"
+                                        >
+                                            <Printer size={18} /> {isGenerating ? 'Generating...' : 'Job Sheet (PDF)'}
+                                        </button>
+
                                         {timerStatus !== 'running' ? (
                                             <button onClick={handleStartTimer} className="w-full flex items-center justify-center gap-2 bg-[#E6F4EA] text-[#0A8043] border border-[#0A8043]/20 py-3 rounded-xl font-bold text-sm shadow-sm transition-colors">
                                                 <Play size={18} /> Start Timer
@@ -516,6 +826,35 @@ const JobDetails = () => {
                                         <button onClick={handleCompleteJob} className="w-full flex items-center justify-center gap-2 bg-[#0A8043] text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-[#0A8043]/10">
                                             <CheckCircle size={18} /> Complete Job
                                         </button>
+                                    </div>
+                                )}
+
+                                {job.status === 'Completed' && (
+                                    <div className="mt-6 space-y-3">
+                                        <button
+                                            onClick={generateCompletionReport}
+                                            disabled={isGenerating}
+                                            className="w-full flex items-center justify-center gap-2 bg-delaval-blue text-white py-3 rounded-xl font-bold text-sm shadow-md"
+                                        >
+                                            <FileCheck size={18} /> {isGenerating ? 'Generating...' : 'Completion Report'}
+                                        </button>
+
+                                        <div className="bg-white p-4 rounded-xl border border-slate-100 space-y-4">
+                                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Report Data</h3>
+                                            <input
+                                                type="text"
+                                                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm"
+                                                placeholder="Sign-off Name"
+                                                value={mechanicSignOff}
+                                                onChange={e => setMechanicSignOff(e.target.value)}
+                                            />
+                                            <textarea
+                                                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm min-h-[80px]"
+                                                placeholder="Recommendations"
+                                                value={recommendations}
+                                                onChange={e => setRecommendations(e.target.value)}
+                                            />
+                                        </div>
                                     </div>
                                 )}
                             </div>
