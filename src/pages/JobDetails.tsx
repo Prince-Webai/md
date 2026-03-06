@@ -174,34 +174,11 @@ const JobDetails = () => {
         if (!error) setItems(items.filter(i => i.id !== itemId));
     };
 
-    const uploadPDFToStorage = async (doc: jsPDF, fileName: string) => {
-        try {
-            const pdfBlob = doc.output('blob');
-            const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
-            const filePath = `${job?.id}/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('job-documents')
-                .upload(filePath, file, { upsert: true });
-
-            if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage
-                .from('job-documents')
-                .getPublicUrl(filePath);
-
-            return data.publicUrl;
-        } catch (error) {
-            console.error('Error uploading PDF:', error);
-            return null;
-        }
-    };
 
     const generateJobSheet = async () => {
         if (!job) return;
         setIsGenerating(true);
         try {
-            // Use current settings or fallback defaults
             const s = settings || {
                 company_name: 'MD Burke Ltd',
                 company_address: 'Workshop Address',
@@ -212,69 +189,99 @@ const JobDetails = () => {
             const doc = new jsPDF();
             const primaryColor: [number, number, number] = [10, 128, 67]; // DeLaval Green
 
-            // Header
-            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.rect(0, 0, 210, 40, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(22);
+            // --- Header Layout (Professional Invoice Style) ---
+            doc.setFillColor(248, 250, 251); // Light slate background for header
+            doc.rect(0, 0, 210, 45, 'F');
+
+            // Branding
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.setFontSize(28);
             doc.setFont('helvetica', 'bold');
-            doc.text('JOB WORKSHEET', 14, 25);
-            doc.setFontSize(10);
-            doc.text(`Job Number: #${job.job_number}`, 14, 32);
+            doc.text(s.company_name.toUpperCase(), 14, 25);
 
-            // Company info (Right aligned)
+            doc.setTextColor(100, 100, 100);
             doc.setFontSize(10);
-            doc.text(s.company_name, 196, 15, { align: 'right' });
             doc.setFont('helvetica', 'normal');
-            doc.text(s.company_address || '', 196, 20, { align: 'right' });
-            doc.text(`Tel: ${s.company_phone || ''}`, 196, 25, { align: 'right' });
+            doc.text(s.company_address || '', 14, 32);
+            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, 14, 37);
 
-            // Content
+            // Document Info
             doc.setTextColor(0, 0, 0);
+            doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
-            doc.text('CUSTOMER DETAILS', 14, 50);
+            doc.text('JOB WORKSHEET', 196, 25, { align: 'right' });
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Job Number: #${job.job_number}`, 196, 32, { align: 'right' });
+            doc.text(`Date: ${new Date().toLocaleDateString()}`, 196, 37, { align: 'right' });
+
+            // --- Customer Section ---
             doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.line(14, 52, 60, 52);
+            doc.setLineWidth(0.5);
+            doc.line(14, 52, 28, 52); // Accent line
 
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Name: ${job.customers?.name}`, 14, 60);
-            doc.text(`Address: ${job.customers?.address || 'N/A'}`, 14, 65);
-            doc.text(`Phone: ${job.customers?.phone || 'N/A'}`, 14, 70);
-
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('EQUIPMENT / PROBLEM', 14, 85);
-            doc.line(14, 87, 65, 87);
+            doc.text('CUSTOMER INFORMATION', 14, 50);
+
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Machine: ${job.machine_details || 'N/A'}`, 14, 95);
-            doc.text('Description:', 14, 100);
+            doc.text([
+                `Name: ${job.customers?.name}`,
+                `Address: ${job.customers?.address || 'N/A'}`,
+                `Phone: ${job.customers?.phone || 'N/A'}`
+            ], 14, 60);
+
+            // --- Equipment Section ---
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('EQUIPMENT & PROBLEM DESCRIPTION', 14, 85);
+            doc.line(14, 87, 28, 87);
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Machine / System: ${job.machine_details || 'N/A'}`, 14, 95);
+
             const splitProblem = doc.splitTextToSize(job.problem_description || 'No description provided.', 180);
-            doc.text(splitProblem, 14, 105);
+            doc.text('Fault Description:', 14, 105);
+            doc.text(splitProblem, 14, 110);
 
-            // Parts Reserved/Used
+            // --- Table Section ---
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('PARTS / MATERIALS', 14, 130);
+            doc.text('RESERVED PARTS & MATERIALS', 14, 140);
+
             autoTable(doc, {
-                startY: 135,
-                head: [['Description', 'Qty']],
-                body: items.filter(i => i.type === 'part').map(i => [i.description, i.quantity.toString()]),
-                headStyles: { fillColor: primaryColor }
+                startY: 145,
+                head: [['DESCRIPTION', 'QTY', 'STATUS']],
+                body: items.filter(i => i.type === 'part').map(i => [
+                    i.description,
+                    i.quantity.toString(),
+                    'RESERVED'
+                ]),
+                theme: 'striped',
+                headStyles: { fillColor: primaryColor, textColor: 255, fontStyle: 'bold' },
+                styles: { fontSize: 9, cellPadding: 4 },
+                columnStyles: {
+                    1: { halign: 'center' },
+                    2: { halign: 'right', fontStyle: 'bold' }
+                }
             });
 
-            // Footer
+            // --- Footer ---
+            const pageHeight = doc.internal.pageSize.height;
+            doc.setDrawColor(230, 230, 230);
+            doc.line(14, pageHeight - 30, 196, pageHeight - 30);
             doc.setFontSize(8);
             doc.setTextColor(150, 150, 150);
-            doc.text(`Generated on ${new Date().toLocaleString()}`, 14, 285);
+            doc.text('Generated by MD Burke Workshop System', 14, pageHeight - 20);
+            doc.text(`Ref: ${job.id}`, 196, pageHeight - 20, { align: 'right' });
 
             doc.save(`JobSheet_${job.job_number}.pdf`);
-            alert('Job Sheet generated and downloading!');
-
-            const url = await uploadPDFToStorage(doc, `JobSheet_${job.job_number}.pdf`);
-            if (url) {
-                await supabase.from('jobs').update({ job_sheet_pdf_url: url }).eq('id', job.id);
-            }
+            alert('Job Sheet successfully generated!');
         } catch (error: any) {
-            console.error('PDF Generation Error:', error);
-            alert('Could not generate PDF: ' + error.message);
+            console.error('PDF Error:', error);
+            alert('Error generating PDF: ' + error.message);
         } finally {
             setIsGenerating(false);
         }
@@ -294,97 +301,122 @@ const JobDetails = () => {
             const doc = new jsPDF();
             const primaryColor: [number, number, number] = [10, 128, 67];
 
-            // Header
-            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.rect(0, 0, 210, 45, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(22);
-            doc.setFont('helvetica', 'bold');
-            doc.text('SERVICE COMPLETION REPORT', 14, 25);
-            doc.setFontSize(10);
-            doc.text(`Job Number: #${job.job_number} | Filterable ID: ${job.id.substring(0, 8)}`, 14, 33);
+            // --- Header (Premium Layout) ---
+            doc.setFillColor(248, 250, 251);
+            doc.rect(0, 0, 210, 50, 'F');
 
-            // Company info
-            doc.text(s.company_name, 196, 15, { align: 'right' });
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.setFontSize(28);
+            doc.setFont('helvetica', 'bold');
+            doc.text(s.company_name.toUpperCase(), 14, 25);
+
+            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text(s.company_address || '', 196, 20, { align: 'right' });
-            doc.text(`Email: ${s.company_email || ''}`, 196, 25, { align: 'right' });
+            doc.text(s.company_address || '', 14, 32);
+            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, 14, 37);
 
             doc.setTextColor(0, 0, 0);
-
-            //Summary
-            const completionDate = new Date().toLocaleDateString();
-            const labourHours = (job.total_hours_worked || 0).toFixed(2);
-
-            autoTable(doc, {
-                startY: 55,
-                body: [
-                    ['Customer', job.customers?.name || 'N/A'],
-                    ['Date Completed', completionDate],
-                    ['Engineer', job.engineer_name || 'N/A'],
-                    ['Labour Hours', labourHours]
-                ],
-                theme: 'plain',
-                styles: { fontSize: 10, cellPadding: 2 }
-            });
-
-            const finalSummaryY = (doc as any).lastAutoTable.finalY || 55;
-
-            // Work Done
+            doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
-            doc.text('WORK PERFORMED', 14, finalSummaryY + 15);
-            const workDone = doc.splitTextToSize(job.problem_description || 'General Service', 180);
+            doc.text('COMPLETION REPORT', 196, 25, { align: 'right' });
+
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text(workDone, 14, finalSummaryY + 22);
+            doc.text(`Job Number: #${job.job_number}`, 196, 32, { align: 'right' });
+            doc.text(`Completed: ${new Date().toLocaleDateString()}`, 196, 37, { align: 'right' });
+            doc.text(`Engineer: ${job.engineer_name || 'N/A'}`, 196, 42, { align: 'right' });
 
-            // Parts Table
-            const finalWorkY = finalSummaryY + 22 + (workDone.length * 5);
+            // --- Customer & Vehicle ---
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('PARTS & MATERIALS USED', 14, finalWorkY + 10);
+            doc.text('CUSTOMER / VEHICLE DETAILS', 14, 65);
+            doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.line(14, 67, 28, 67);
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text([
+                `Customer: ${job.customers?.name}`,
+                `Machine: ${job.machine_details || 'N/A'}`,
+                `Labour Time: ${(job.total_hours_worked || 0).toFixed(2)} hours`
+            ], 14, 75);
+
+            // --- Work Performed ---
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('WORK PERFORMED SUMMARY', 14, 100);
+            doc.line(14, 102, 28, 102);
+
+            const workDone = doc.splitTextToSize(job.problem_description || 'General Service and inspection performed.', 180);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(workDone, 14, 110);
+
+            // --- Parts Table ---
+            const finalWorkY = 110 + (workDone.length * 5);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('PARTS & MATERIALS UTILIZED', 14, finalWorkY + 10);
 
             autoTable(doc, {
                 startY: finalWorkY + 15,
-                head: [['Part Description', 'Quantity', 'Unit Price', 'Total']],
+                head: [['ITEM DESCRIPTION', 'QTY', 'UNIT PRICE', 'TOTAL']],
                 body: items.filter(i => i.type === 'part').map(i => [
                     i.description,
                     i.quantity.toString(),
                     `EUR ${i.unit_price.toFixed(2)}`,
                     `EUR ${(i.quantity * i.unit_price).toFixed(2)}`
                 ]),
-                headStyles: { fillColor: primaryColor }
+                theme: 'striped',
+                headStyles: { fillColor: primaryColor, textColor: 255 },
+                styles: { fontSize: 9 },
+                columnStyles: {
+                    1: { halign: 'center' },
+                    2: { halign: 'right' },
+                    3: { halign: 'right', fontStyle: 'bold' }
+                }
             });
 
-            const finalPartsY = (doc as any).lastAutoTable.finalY || finalWorkY + 15;
+            const finalTableY = (doc as any).lastAutoTable.finalY || finalWorkY + 15;
 
-            // Recommendations
+            // --- Recommendations ---
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('RECOMMENDATIONS / FUTURE WORK', 14, finalPartsY + 15);
-            doc.setFont('helvetica', 'normal');
-            const recs = doc.splitTextToSize(recommendations || 'System functioning correctly. No further work required at this time.', 180);
-            doc.text(recs, 14, finalPartsY + 22);
+            doc.text('PROFESSIONAL RECOMMENDATIONS', 14, finalTableY + 15);
+            doc.line(14, finalTableY + 17, 28, finalTableY + 17);
 
-            // Sign-off
-            const finalRecsY = finalPartsY + 22 + (recs.length * 5);
+            const recs = doc.splitTextToSize(recommendations || 'Vehicle system is performing within normal parameters. No immediate action required.', 180);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text(recs, 14, finalTableY + 25);
+
+            // --- Sign-off ---
+            const finalRecsY = finalTableY + 25 + (recs.length * 5);
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(14, finalRecsY + 10, 182, 30);
+
+            doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
-            doc.text('MECHANIC SIGN-OFF', 14, finalRecsY + 15);
+            doc.text('MECHANIC SIGN-OFF', 18, finalRecsY + 18);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Name: ${mechanicSignOff || job.engineer_name || 'N/A'}`, 14, finalRecsY + 23);
-            doc.text('Signature: __________________________', 120, finalRecsY + 23);
+            doc.text(`Verified by: ${mechanicSignOff || job.engineer_name || 'System User'}`, 18, finalRecsY + 25);
+            doc.text(`Digital Timestamp: ${new Date().toLocaleString()}`, 18, finalRecsY + 32);
+            doc.text('Signature: __________________________', 120, finalRecsY + 25);
 
+            // Save locally
             doc.save(`CompletionReport_${job.job_number}.pdf`);
-            alert('Completion Report generated and downloading!');
+            alert('Completion Report successfully generated!');
 
-            const url = await uploadPDFToStorage(doc, `CompletionReport_${job.job_number}.pdf`);
-            if (url) {
-                await supabase.from('jobs').update({
-                    completion_report_pdf_url: url,
-                    recommendations,
-                    mechanic_sign_off_name: mechanicSignOff
-                }).eq('id', job.id);
-            }
+            // Update database with report details (no PDF URL)
+            await supabase.from('jobs').update({
+                recommendations,
+                mechanic_sign_off_name: mechanicSignOff
+            }).eq('id', job.id);
+
         } catch (error: any) {
-            console.error('PDF Generation Error:', error);
-            alert('Could not generate completion report: ' + (error.message || error));
+            console.error('PDF Error:', error);
+            alert('Error generating Completion Report: ' + error.message);
         } finally {
             setIsGenerating(false);
         }
