@@ -72,15 +72,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
         <div className="min-h-screen bg-[#F8FAFB] font-sans text-[#1a1a1a]">
             {/* Header - Hidden on mobile, visible on desktop */}
-            <header className="hidden md:block sticky top-0 z-[1000] bg-white shadow-sm h-auto overflow-hidden transition-colors">
-                <div className="max-w-[1600px] mx-auto md:px-8 py-3 flex justify-between items-center h-full">
+            <header className="hidden md:block sticky top-0 z-[1000] bg-white shadow-sm h-[110px] transition-colors">
+                <div className="max-w-[1600px] mx-auto h-full px-8 flex justify-between items-center">
 
                     {/* Logo Section */}
-                    <div className="flex items-center">
+                    <div className="flex items-center h-full">
                         <img
                             src={logoImg}
                             alt="MD Burke"
-                            className="h-[50px] md:h-[150px] w-auto origin-left brightness-0 invert md:brightness-100 md:invert-0 md:mix-blend-multiply transition-all duration-300"
+                            className="h-[90px] w-auto object-contain"
                         />
                     </div>
 

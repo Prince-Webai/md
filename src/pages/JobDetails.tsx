@@ -392,7 +392,7 @@ const JobDetails = () => {
                         <p className="text-slate-500">{job.customers?.name}</p>
                     </div>
                     <div className="ml-auto flex gap-3">
-                        {job.status === 'In Progress' && (
+                        {job.status !== 'Completed' && job.status !== 'Closed' && (
                             <button
                                 onClick={generateJobSheet}
                                 disabled={isGenerating}
@@ -803,7 +803,7 @@ const JobDetails = () => {
                                     </div>
                                 </div>
                                 {/* Actions */}
-                                {job.status !== 'Completed' && (
+                                {job.status !== 'Completed' && job.status !== 'Closed' && (
                                     <div className="mt-6 space-y-3">
                                         <button
                                             onClick={generateJobSheet}
