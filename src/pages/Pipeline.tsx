@@ -224,14 +224,14 @@ const Pipeline = () => {
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto h-[calc(100vh-theme(spacing.16))] flex flex-col">
-      <div className="mb-8 flex justify-between items-center">
+      <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Job Pipeline</h1>
           <p className="text-slate-500 mt-1">
             Drag and drop jobs to update their pipeline position
           </p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           {isAdmin && (
             <div className="w-64">
               <SearchableSelect

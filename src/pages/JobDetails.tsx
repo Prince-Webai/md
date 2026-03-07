@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle, Download, Printer, UserCheck, FileCheck, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle, Download, Printer, UserCheck, FileCheck, AlertCircle, AlertTriangle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import SearchableSelect from '../components/SearchableSelect';
@@ -31,6 +31,7 @@ const JobDetails = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [recommendations, setRecommendations] = useState('');
     const [mechanicSignOff, setMechanicSignOff] = useState('');
+    const [timeLeft, setTimeLeft] = useState<string>('');
     const [settings, setSettings] = useState<Settings | null>(null);
 
     // Refresh timer logic when job updates
@@ -135,6 +136,29 @@ const JobDetails = () => {
             } : null);
         }
     };
+
+    useEffect(() => {
+        if (!job || !job.date_completed || job.status === 'Completed') return;
+
+        const updateTimer = () => {
+            const now = new Date();
+            const end = new Date(job.date_completed!);
+            const diff = end.getTime() - now.getTime();
+
+            if (diff <= 0) {
+                setTimeLeft('00:00:00');
+            } else {
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                setTimeLeft(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+            }
+        };
+
+        updateTimer();
+        const timer = setInterval(updateTimer, 1000);
+        return () => clearInterval(timer);
+    }, [job?.date_completed, job?.status]);
 
     useEffect(() => {
         if (id) {
@@ -663,48 +687,63 @@ const JobDetails = () => {
                         <div className="section-card p-6">
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-lg font-bold text-slate-900">Job Control</h2>
-                                <div className={`px-4 py-2 rounded-xl flex items-center gap-3 shadow-md border animate-in fade-in transition-all duration-500 ${job.status === 'Completed' ? 'bg-[#E6F4EA] border-[#0A8043]/20 text-[#0A8043]' : job.date_completed ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-100 text-slate-700 border-slate-200'}`}>
-                                    <div className="flex flex-col items-end">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                                            {job.status === 'Completed' ? 'Pipeline' : job.date_completed ? 'Remaining Time' : 'Total Labour'}
-                                        </span>
-                                        <div className="text-xl font-black font-mono flex items-center gap-2">
-                                            {job.status === 'Completed' ? (
-                                                <div className="flex items-center gap-2">
-                                                    <CheckCircle size={18} />
-                                                    <span>COMPLETED</span>
+                                {(() => {
+                                    const isOverdue = job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date();
+                                    return (
+                                        <div className={`px-4 py-2 rounded-xl flex items-center gap-3 shadow-md border animate-in fade-in transition-all duration-500 ${job.status === 'Completed' ? 'bg-[#E6F4EA] border-[#0A8043]/20 text-[#0A8043]' :
+                                            isOverdue ? 'bg-red-50 border-red-200 text-red-700 shadow-red-100' :
+                                                job.date_completed ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-amber-100' :
+                                                    'bg-slate-100 text-slate-700 border-slate-200'
+                                            }`}>
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
+                                                    {job.status === 'Completed' ? 'Pipeline' : isOverdue ? 'OVERDUE' : job.date_completed ? 'Deadline Countdown' : 'Total Labour'}
+                                                </span>
+                                                <div className="text-xl font-black font-mono flex items-center gap-2">
+                                                    {job.status === 'Completed' ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <CheckCircle size={18} />
+                                                            <span>COMPLETED</span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <Clock size={18} className={!isOverdue && timeLeft !== '00:00:00' ? 'animate-pulse text-[#0A8043]' : 'text-slate-400'} />
+                                                            {job.date_completed ? timeLeft : formatTime(timerStatus === 'running' ? elapsedSeconds : 0)}
+                                                        </>
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <>
-                                                    <Clock size={18} className={timerStatus === 'running' ? 'animate-pulse text-[#0A8043]' : ''} />
-                                                    {formatTime(timerStatus === 'running' ? elapsedSeconds : 0)}
-                                                </>
-                                            )}
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
+                                    );
+                                })()}
                             </div>
                             <div className="space-y-4">
                                 {/* Job Controls - Priority & Completion */}
                                 {job.status !== 'Completed' && (
                                     <div className="bg-white p-5 rounded-2xl border border-slate-100 space-y-5 shadow-sm">
-                                        <div className="flex flex-col">
-                                            <SearchableSelect
-                                                label="Pipeline Priority"
-                                                searchable={false}
-                                                options={[
-                                                    { value: 'Normal', label: 'Normal' },
-                                                    { value: 'Urgent', label: 'Urgent' },
-                                                    { value: 'Overdue', label: 'Overdue' }
-                                                ]}
-                                                value={job.priority || 'Normal'}
-                                                onChange={async (val) => {
-                                                    const p = val as 'Normal' | 'Urgent' | 'Overdue';
-                                                    const { error } = await supabase.from('jobs').update({ priority: p }).eq('id', job.id);
-                                                    if (!error) setJob({ ...job, priority: p });
-                                                }}
-                                                icon={<AlertCircle size={16} className={job.priority === 'Urgent' ? 'text-red-500' : job.priority === 'Overdue' ? 'text-red-600' : 'text-slate-400'} />}
-                                            />
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Pipeline Priority</label>
+                                            <div className="flex bg-slate-50 p-1.5 rounded-xl border border-slate-100 shadow-inner">
+                                                {[
+                                                    { value: 'Normal', label: 'Normal', color: 'text-slate-600', active: 'bg-white text-slate-900' },
+                                                    { value: 'Urgent', label: 'Urgent', color: 'text-red-600', active: 'bg-red-600 text-white' },
+                                                    { value: 'Overdue', label: 'Overdue', color: 'text-orange-600', active: 'bg-orange-600 text-white' }
+                                                ].map((p) => (
+                                                    <button
+                                                        key={p.value}
+                                                        onClick={async () => {
+                                                            const priorityValue = p.value as 'Normal' | 'Urgent' | 'Overdue';
+                                                            const { error } = await supabase.from('jobs').update({ priority: priorityValue }).eq('id', job.id);
+                                                            if (!error) setJob({ ...job, priority: priorityValue });
+                                                        }}
+                                                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-lg text-xs font-bold transition-all duration-200 ${job.priority === p.value ? `${p.active} shadow-md scale-[1.02]` : `${p.color} hover:bg-white/50 active:scale-95`}`}
+                                                    >
+                                                        {p.value === 'Urgent' && <AlertCircle size={14} />}
+                                                        {p.value === 'Overdue' && <AlertTriangle size={14} />}
+                                                        {p.label}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
 
                                         <button
@@ -844,9 +883,18 @@ const JobDetails = () => {
                     <button onClick={() => navigate('/jobs')} className="p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-full">
                         <ArrowLeft size={24} />
                     </button>
-                    <h1 className="text-lg font-bold font-display text-slate-900 truncate flex-1 text-center mr-8">
-                        {job.customers?.name || `Job #${job.job_number}`}
-                    </h1>
+                    <div className="flex-1 text-center truncate px-2">
+                        <h1 className="text-lg font-bold font-display text-slate-900 truncate">
+                            {job.customers?.name || `Job #${job.job_number}`}
+                        </h1>
+                        {(() => {
+                            const isOverdue = job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date();
+                            if (isOverdue) return <span className="text-[10px] font-black text-red-600 uppercase tracking-tighter">OVERDUE • {timeLeft}</span>;
+                            if (job.date_completed && job.status !== 'Completed') return <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tighter">Ends in {timeLeft}</span>;
+                            return <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Job Details</span>;
+                        })()}
+                    </div>
+                    <div className="w-10"></div>
                 </div>
 
                 {/* Mobile Content */}
@@ -865,37 +913,64 @@ const JobDetails = () => {
                         </div>
                     </div>
 
-                    {/* Pipeline Update */}
-                    <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100 shadow-inner">
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Pipeline</label>
-                        {job.status === 'Completed' ? (
-                            <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-3 rounded-lg border border-green-200 font-bold">
-                                <CheckCircle size={18} /> Completed
+                    {/* Mobile Pipeline & Priority */}
+                    <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Pipeline Stage</label>
+                            {job.status === 'Completed' ? (
+                                <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-3 rounded-lg border border-green-200 font-bold">
+                                    <CheckCircle size={18} /> Completed
+                                </div>
+                            ) : (
+                                <SearchableSelect
+                                    label=""
+                                    searchable={false}
+                                    options={[
+                                        { value: 'Booked In', label: 'Booked In' },
+                                        { value: 'In Progress', label: 'In Progress' },
+                                        { value: 'Waiting for Parts', label: 'Waiting for Parts' },
+                                        { value: 'Ready to Continue', label: 'Ready to Continue' },
+                                        { value: 'Ready for Collection', label: 'Ready for Collection' },
+                                        { value: 'Completed', label: 'Completed' },
+                                        { value: 'Closed', label: 'Closed' }
+                                    ]}
+                                    value={job.status}
+                                    onChange={async (newStatus) => {
+                                        const { error } = await supabase
+                                            .from('jobs')
+                                            .update({ status: newStatus })
+                                            .eq('id', job.id);
+                                        if (!error) {
+                                            setJob({ ...job, status: newStatus as any });
+                                        }
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        {job.status !== 'Completed' && (
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Pipeline Priority</label>
+                                <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100 shadow-inner">
+                                    {[
+                                        { value: 'Normal', label: 'Normal', active: 'bg-white text-slate-900 shadow-sm' },
+                                        { value: 'Urgent', label: 'Urgent', active: 'bg-red-600 text-white shadow-sm' },
+                                        { value: 'Overdue', label: 'Overdue', active: 'bg-orange-600 text-white shadow-sm' }
+                                    ].map((p) => (
+                                        <button
+                                            key={p.value}
+                                            onClick={async () => {
+                                                const val = p.value as 'Normal' | 'Urgent' | 'Overdue';
+                                                const { error } = await supabase.from('jobs').update({ priority: val }).eq('id', job.id);
+                                                if (!error) setJob({ ...job, priority: val });
+                                            }}
+                                            className={`flex-1 py-3 rounded-lg text-xs font-bold transition-all duration-200 ${job.priority === p.value ? p.active : 'text-slate-500'}`}
+                                        >
+                                            {p.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        ) : (
-                            <SearchableSelect
-                                label=""
-                                searchable={false}
-                                options={[
-                                    { value: 'Booked In', label: 'Booked In' },
-                                    { value: 'In Progress', label: 'In Progress' },
-                                    { value: 'Waiting for Parts', label: 'Waiting for Parts' },
-                                    { value: 'Ready to Continue', label: 'Ready to Continue' },
-                                    { value: 'Ready for Collection', label: 'Ready for Collection' },
-                                    { value: 'Completed', label: 'Completed' },
-                                    { value: 'Closed', label: 'Closed' }
-                                ]}
-                                value={job.status}
-                                onChange={async (newStatus) => {
-                                    const { error } = await supabase
-                                        .from('jobs')
-                                        .update({ status: newStatus })
-                                        .eq('id', job.id);
-                                    if (!error) {
-                                        setJob({ ...job, status: newStatus as any });
-                                    }
-                                }}
-                            />
                         )}
                     </div>
 
@@ -973,16 +1048,6 @@ const JobDetails = () => {
                                         >
                                             <Printer size={18} /> {isGenerating ? 'Generating...' : 'Job Sheet (PDF)'}
                                         </button>
-
-                                        {timerStatus !== 'running' ? (
-                                            <button onClick={handleStartTimer} className="w-full flex items-center justify-center gap-2 bg-[#E6F4EA] text-[#0A8043] border border-[#0A8043]/20 py-3 rounded-xl font-bold text-sm shadow-sm transition-colors">
-                                                <Play size={18} /> Start Timer
-                                            </button>
-                                        ) : (
-                                            <button onClick={handlePauseTimer} className="w-full flex items-center justify-center gap-2 bg-[#FFC107] text-slate-900 py-3 rounded-xl font-bold text-sm shadow-sm transition-colors">
-                                                <Pause size={18} /> Pause Timer
-                                            </button>
-                                        )}
 
                                         <button onClick={handleCompleteJob} className="w-full flex items-center justify-center gap-2 bg-[#0A8043] text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-[#0A8043]/10">
                                             <CheckCircle size={18} /> Complete Job
