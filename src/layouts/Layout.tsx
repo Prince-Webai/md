@@ -80,7 +80,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <img
                             src={logoImg}
                             alt="MD Burke"
-                            className="h-[90px] w-auto object-contain"
+                            className="h-[110px] w-auto object-contain scale-[1.3] origin-left mix-blend-multiply"
                         />
                     </div>
 

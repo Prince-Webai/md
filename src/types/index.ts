@@ -9,7 +9,6 @@ export interface Customer {
     email?: string;
     phone?: string;
     account_balance?: number;
-    payment_terms?: string;
 }
 
 export interface InventoryItem {

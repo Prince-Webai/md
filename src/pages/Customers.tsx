@@ -30,8 +30,7 @@ const Customers = () => {
         address: '',
         contact_person: '',
         email: '',
-        phone: '',
-        payment_terms: 'Net 30'
+        phone: ''
     });
 
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -147,8 +146,7 @@ const Customers = () => {
                     email: emailIdx >= 0 ? cols[emailIdx] || '' : '',
                     phone: phoneIdx >= 0 ? cols[phoneIdx] || '' : '',
                     address: addressIdx >= 0 ? cols[addressIdx] || '' : '',
-                    contact_person: contactIdx >= 0 ? cols[contactIdx] || '' : '',
-                    payment_terms: 'Net 30'
+                    contact_person: contactIdx >= 0 ? cols[contactIdx] || '' : ''
                 });
             }
 
@@ -235,7 +233,7 @@ const Customers = () => {
             }
             setIsModalOpen(false);
             setEditingId(null);
-            setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
+            setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '' });
             showToast('Success', editingId ? 'Customer updated successfully' : 'Customer created successfully', 'success');
         } catch (error: any) {
             console.error('Error saving customer:', error);
@@ -250,8 +248,7 @@ const Customers = () => {
             address: selectedCustomer.address_line1 || selectedCustomer.address || '',
             contact_person: '',
             email: selectedCustomer.email || '',
-            phone: selectedCustomer.phone || '',
-            payment_terms: 'Net 30'
+            phone: selectedCustomer.phone || ''
         });
         setEditingId(selectedCustomer.id);
         setIsModalOpen(true);
@@ -491,7 +488,6 @@ const Customers = () => {
                                     </div>
                                     <div className="flex gap-3">
                                         <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Active Account</span>
-                                        <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">Terms: {selectedCustomer.payment_terms}</span>
                                     </div>
                                 </div>
                                 <div className="text-left md:text-right flex flex-col items-start md:items-end gap-2">
@@ -733,7 +729,7 @@ const Customers = () => {
                                     <button
                                         onClick={() => {
                                             setEditingId(null);
-                                            setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
+                                            setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '' });
                                             setIsModalOpen(true);
                                         }}
                                         className="flex items-center gap-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white px-4 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-green-900/20 active:scale-95"
@@ -960,7 +956,7 @@ const Customers = () => {
                             <button
                                 onClick={() => {
                                     setEditingId(null);
-                                    setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '', payment_terms: 'Net 30' });
+                                    setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '' });
                                     setIsModalOpen(true);
                                 }}
                                 className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
@@ -1039,30 +1035,17 @@ const Customers = () => {
                             <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
                             <textarea className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20" rows={3} value={newCustomer.address} onChange={e => setNewCustomer({ ...newCustomer, address: e.target.value })} />
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Contact Person</label>
                             <input type="text" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20" value={newCustomer.contact_person} onChange={e => setNewCustomer({ ...newCustomer, contact_person: e.target.value })} />
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
                             <input type="tel" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20" value={newCustomer.phone} onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })} />
                         </div>
-                        <div className="col-span-2">
+                        <div className="col-span-1 md:col-span-2">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
                             <input type="email" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20" value={newCustomer.email} onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value })} />
-                        </div>
-                        <div className="col-span-2">
-                            <SearchableSelect
-                                label="Payment Terms"
-                                searchable={false}
-                                options={[
-                                    { value: 'Net 30', label: 'Net 30' },
-                                    { value: 'Net 60', label: 'Net 60' },
-                                    { value: 'Immediate', label: 'Immediate' }
-                                ]}
-                                value={newCustomer.payment_terms}
-                                onChange={(val) => setNewCustomer({ ...newCustomer, payment_terms: val })}
-                            />
                         </div>
                     </div>
                     <div className="pt-4 flex justify-end gap-3">
@@ -1093,7 +1076,7 @@ const Customers = () => {
                 isLoading={isDeleting}
                 confirmText={`Delete ${selectedIds.size} Customer(s)`}
             />
-        </div>
+        </div >
     );
 
 };

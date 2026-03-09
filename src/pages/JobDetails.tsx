@@ -381,7 +381,11 @@ const JobDetails = () => {
             };
 
             const doc = new jsPDF();
-            const primaryColor: [number, number, number] = [10, 128, 67];
+            const primaryColor: [number, number, number] = [10, 128, 67]; // MD Burke Green
+            const secondaryBg: [number, number, number] = [249, 250, 251]; // Soft Gray
+            const borderColor: [number, number, number] = [229, 231, 235];
+            const textColor: [number, number, number] = [31, 41, 55];
+            const mutedText: [number, number, number] = [100, 116, 139];
 
             // Helper to add logo if exists
             const addLogo = async (doc: any) => {
@@ -393,122 +397,205 @@ const JobDetails = () => {
                             img.onload = resolve;
                             img.onerror = reject;
                         });
-                        doc.addImage(img, 'PNG', 14, 10, 30, 30);
-                        return true;
+                        // Proportional scaling for logo
+                        const maxWidth = 45;
+                        const maxHeight = 25;
+                        let width = img.width;
+                        let height = img.height;
+                        const ratio = Math.min(maxWidth / width, maxHeight / height);
+                        width *= ratio;
+                        height *= ratio;
+
+                        doc.addImage(img, 'PNG', 14, 12, width, height);
+                        return { width, height };
                     } catch (e) {
                         console.error('Logo load failed', e);
-                        return false;
+                        return null;
                     }
                 }
-                return false;
+                return null;
             };
 
-            // --- Header (Premium Layout) ---
-            doc.setFillColor(248, 250, 251);
-            doc.rect(0, 0, 210, 50, 'F');
+            // --- Header Enhancement ---
+            // Top Accent Bar
+            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.rect(0, 0, 210, 4, 'F');
 
-            const hasLogo = await addLogo(doc);
+            const logoInfo = await addLogo(doc);
+            const headerTextX = logoInfo ? 14 + logoInfo.width + 10 : 14;
 
-            if (!hasLogo) {
-                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                doc.setFontSize(24);
-                doc.setFont('helvetica', 'bold');
-                doc.text(s.company_name.toUpperCase(), 14, 25);
-            }
+            // Company Info
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            doc.setFontSize(logoInfo ? 12 : 18);
+            doc.setFont('helvetica', 'bold');
+            doc.text(s.company_name.toUpperCase(), headerTextX, 18);
 
-            doc.setTextColor(100, 100, 100);
+            doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            doc.text(s.company_address || '', hasLogo ? 48 : 14, hasLogo ? 18 : 32);
-            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, hasLogo ? 48 : 14, hasLogo ? 23 : 37);
+            doc.text(s.company_address || '', headerTextX, 23);
+            doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, headerTextX, 28);
 
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(18);
+            // Report Title & Meta
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.setFontSize(22);
             doc.setFont('helvetica', 'bold');
-            doc.text('COMPLETION REPORT', 196, 25, { align: 'right' });
+            doc.text('COMPLETION REPORT', 196, 22, { align: 'right' });
 
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
             doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Job Number: #${job.job_number}`, 196, 32, { align: 'right' });
-            doc.text(`Completed: ${new Date().toLocaleDateString()}`, 196, 37, { align: 'right' });
-            doc.text(`Engineer: ${job.engineer_name || 'N/A'}`, 196, 42, { align: 'right' });
-
-            // --- Customer & Vehicle ---
-            doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('CUSTOMER / VEHICLE DETAILS', 14, 65);
-            doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.line(14, 67, 28, 67);
+            doc.text(`Job Number: #${job.job_number}`, 196, 30, { align: 'right' });
 
-            doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text([
-                `Customer: ${job.customers?.name}`,
-                `Machine: ${job.machine_details || 'N/A'}`,
-                `Labour Time: ${(job.total_hours_worked || 0).toFixed(2)} hours`
-            ], 14, 75);
+            doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+            doc.text(`Completed: ${new Date().toLocaleDateString()}`, 196, 35, { align: 'right' });
+            doc.text(`Engineer: ${job.engineer_name || 'N/A'}`, 196, 40, { align: 'right' });
+
+            // Horizontal Divider
+            doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+            doc.setLineWidth(0.1);
+            doc.line(14, 48, 196, 48);
+
+            // --- Structured Info Sections (Cards) ---
+            const drawSectionHeader = (title: string, y: number) => {
+                doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.rect(14, y, 3, 6, 'F');
+                doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.text(title, 20, y + 4.5);
+            };
+
+            // Section 1: Customer & Machine
+            drawSectionHeader('SERVICE DETAILS', 58);
+
+            // Info Grid Box
+            doc.setFillColor(secondaryBg[0], secondaryBg[1], secondaryBg[2]);
+            doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+            doc.roundedRect(14, 66, 182, 28, 2, 2, 'FD');
+
+            doc.setFontSize(9);
+            // Column 1
+            doc.setFont('helvetica', 'bold');
+            doc.text('CUSTOMER:', 20, 75);
+            doc.setFont('helvetica', 'normal');
+            doc.text(job.customers?.name || 'N/A', 55, 75);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('SITE ADDRESS:', 20, 81);
+            doc.setFont('helvetica', 'normal');
+            doc.text(job.customers?.address || 'See account details', 55, 81);
+
+            // Column 2
+            doc.setFont('helvetica', 'bold');
+            doc.text('MACHINE:', 110, 75);
+            doc.setFont('helvetica', 'normal');
+            doc.text(job.machine_details || 'N/A', 140, 75);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('LABOUR TIME:', 110, 81);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`${(job.total_hours_worked || 0).toFixed(2)} hours`, 140, 81);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('SERVICE TYPE:', 110, 87);
+            doc.setFont('helvetica', 'normal');
+            doc.text(job.service_type || 'General Service', 140, 87);
 
             // --- Work Performed ---
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('WORK PERFORMED SUMMARY', 14, 100);
-            doc.line(14, 102, 28, 102);
+            drawSectionHeader('WORK PERFORMED SUMMARY', 105);
+            const workDone = doc.splitTextToSize(job.problem_description || 'General Service and inspection performed.', 170);
+            const workHeight = Math.max(20, workDone.length * 5 + 10);
 
-            const workDone = doc.splitTextToSize(job.problem_description || 'General Service and inspection performed.', 180);
+            doc.setFillColor(255, 255, 255);
+            doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+            doc.rect(14, 113, 182, workHeight);
+
             doc.setFontSize(10);
             doc.setFont('helvetica', 'normal');
-            doc.text(workDone, 14, 110);
+            doc.setTextColor(50, 50, 50);
+            doc.text(workDone, 20, 120);
 
             // --- Parts Table ---
-            const finalWorkY = 110 + (workDone.length * 5);
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('PARTS & MATERIALS UTILIZED', 14, finalWorkY + 10);
+            const tableY = 113 + workHeight + 10;
+            drawSectionHeader('PARTS & MATERIALS UTILIZED', tableY);
 
             autoTable(doc, {
-                startY: finalWorkY + 15,
-                head: [['ITEM DESCRIPTION', 'QTY', 'UNIT PRICE', 'TOTAL']],
+                startY: tableY + 8,
+                head: [['DESCRIPTION', 'QTY', 'UNIT PRICE', 'SUBTOTAL']],
                 body: items.filter(i => i.type === 'part').map(i => [
                     i.description,
                     i.quantity.toString(),
-                    `EUR ${i.unit_price.toFixed(2)}`,
-                    `EUR ${(i.quantity * i.unit_price).toFixed(2)}`
+                    `€${i.unit_price.toFixed(2)}`,
+                    `€${(i.quantity * i.unit_price).toFixed(2)}`
                 ]),
-                theme: 'striped',
-                headStyles: { fillColor: primaryColor, textColor: 255 },
-                styles: { fontSize: 9 },
+                theme: 'grid',
+                headStyles: {
+                    fillColor: primaryColor,
+                    textColor: 255,
+                    fontSize: 9,
+                    fontStyle: 'bold',
+                    halign: 'center'
+                },
+                styles: { fontSize: 9, cellPadding: 3 },
                 columnStyles: {
-                    1: { halign: 'center' },
-                    2: { halign: 'right' },
-                    3: { halign: 'right', fontStyle: 'bold' }
+                    0: { cellWidth: 'auto' },
+                    1: { halign: 'center', cellWidth: 20 },
+                    2: { halign: 'right', cellWidth: 35 },
+                    3: { halign: 'right', cellWidth: 35, fontStyle: 'bold' }
                 }
             });
 
-            const finalTableY = (doc as any).lastAutoTable.finalY || finalWorkY + 15;
+            const finalTableY = (doc as any).lastAutoTable.finalY || tableY + 20;
 
             // --- Recommendations ---
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text('PROFESSIONAL RECOMMENDATIONS', 14, finalTableY + 15);
-            doc.line(14, finalTableY + 17, 28, finalTableY + 17);
+            const recsY = finalTableY + 12;
+            drawSectionHeader('PROFESSIONAL RECOMMENDATIONS', recsY);
 
-            const recs = doc.splitTextToSize(recommendations || 'Vehicle system is performing within normal parameters. No immediate action required.', 180);
+            const recs = doc.splitTextToSize(recommendations || 'Vehicle system is performing within normal parameters. No immediate action required.', 170);
+            const recsHeight = Math.max(15, recs.length * 5 + 8);
+
+            doc.setFillColor(253, 254, 255); // Very light blue tint
+            doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.setLineWidth(0.2);
+            doc.rect(14, recsY + 8, 182, recsHeight);
+
             doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.text(recs, 14, finalTableY + 25);
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            doc.text(recs, 20, recsY + 15);
 
             // --- Sign-off ---
-            const finalRecsY = finalTableY + 25 + (recs.length * 5);
-            doc.setDrawColor(200, 200, 200);
-            doc.rect(14, finalRecsY + 10, 182, 30);
+            const signOffY = recsY + 8 + recsHeight + 15;
+
+            doc.setFillColor(secondaryBg[0], secondaryBg[1], secondaryBg[2]);
+            doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+            doc.setLineWidth(0.1);
+            doc.roundedRect(14, signOffY, 182, 35, 2, 2, 'FD');
 
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
-            doc.text('MECHANIC SIGN-OFF', 18, finalRecsY + 18);
+            doc.text('CERTIFIED COMPLETION', 20, signOffY + 8);
+
+            doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Verified by: ${mechanicSignOff || job.engineer_name || 'System User'}`, 18, finalRecsY + 25);
-            doc.text(`Digital Timestamp: ${new Date().toLocaleString()}`, 18, finalRecsY + 32);
-            doc.text('Signature: __________________________', 120, finalRecsY + 25);
+            doc.setTextColor(mutedText[0], mutedText[1], mutedText[2]);
+            doc.text(`Service Engineer: ${mechanicSignOff || job.engineer_name || 'System User'}`, 20, signOffY + 16);
+            doc.text(`Digital Verification: ${new Date().toLocaleString()}`, 20, signOffY + 23);
+            doc.text(`Report Status: Final & Verified`, 20, signOffY + 30);
+
+            // Signature Line
+            doc.setDrawColor(textColor[0], textColor[1], textColor[2]);
+            doc.line(130, signOffY + 25, 185, signOffY + 25);
+            doc.setFontSize(8);
+            doc.text('Authorized Signature', 145, signOffY + 30);
+
+            // Footer
+            const pageHeight = doc.internal.pageSize.height;
+            doc.setFontSize(8);
+            doc.setTextColor(180, 180, 180);
+            doc.text(`Ref: ${job.id} | Generated via MD Burke Workshop Management`, 105, pageHeight - 10, { align: 'center' });
 
             // Save locally
             doc.save(`CompletionReport_${job.job_number}.pdf`);

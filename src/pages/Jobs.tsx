@@ -584,7 +584,7 @@ const Jobs = () => {
                             )}
                         </div>
 
-                        <div className="bg-white p-4 rounded-xl border border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="col-span-2">
                                 <h3 className="font-bold text-slate-900 mb-4">Job Details</h3>
                                 <SearchableSelect
@@ -832,7 +832,7 @@ const Jobs = () => {
                             {/* Schedule Section */}
                             <div className="space-y-4">
                                 <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest pl-1">Schedule</label>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                                         <div className="flex items-center gap-2 mb-2 text-[#0A8043]">
                                             <Calendar size={16} />

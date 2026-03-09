@@ -586,18 +586,18 @@ const Inventory = () => {
 
             <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Edit Inventory Item" : "Add Inventory Item"}>
                 <form onSubmit={handleAddItem} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="col-span-1 md:col-span-2">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Part Name</label>
                             <input required type="text" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20"
                                 value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} />
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">SKU</label>
                             <input required type="text" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20"
                                 value={newItem.sku} onChange={e => setNewItem({ ...newItem, sku: e.target.value })} />
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
                             {isNewCategory ? (
                                 <div className="flex gap-2">
@@ -649,27 +649,27 @@ const Inventory = () => {
                                 </div>
                             )}
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Cost Price (€)</label>
                             <input type="number" step="0.01" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20"
                                 value={newItem.cost_price} onChange={e => setNewItem({ ...newItem, cost_price: parseFloat(e.target.value) })} />
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Sell Price (€)</label>
                             <input type="number" step="0.01" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20"
                                 value={newItem.sell_price} onChange={e => setNewItem({ ...newItem, sell_price: parseFloat(e.target.value) })} />
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Stock Level</label>
                             <input type="number" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20"
                                 value={newItem.stock_level} onChange={e => setNewItem({ ...newItem, stock_level: parseInt(e.target.value) || 0 })} />
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Low Stock Alert Level</label>
                             <input type="number" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20"
                                 value={newItem.low_stock_threshold} onChange={e => setNewItem({ ...newItem, low_stock_threshold: parseInt(e.target.value) || 0 })} />
                         </div>
-                        <div>
+                        <div className="col-span-1 md:col-span-1">
                             <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
                             <input type="text" className="w-full px-4 py-2 rounded-lg border border-slate-300 outline-none focus:ring-2 focus:ring-delaval-blue/20"
                                 value={newItem.location} onChange={e => setNewItem({ ...newItem, location: e.target.value })} />
