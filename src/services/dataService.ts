@@ -112,12 +112,65 @@ export const dataService = {
 
     async addJobItem(item: any): Promise<{ data: any, error: any }> {
         if (!isSupabaseConfigured()) return { data: null, error: 'Supabase not configured' };
+
+        // If item is a part and marked as 'Park Mode', deduct stock immediately
+        if (item.type === 'part' && item.inventory_id && item.status === 'Park Mode') {
+            const { data: inv } = await supabase.from('inventory').select('stock_level').eq('id', item.inventory_id).single();
+            if (inv) {
+                await supabase.from('inventory').update({
+                    stock_level: Math.max(0, inv.stock_level - (item.quantity || 0))
+                }).eq('id', item.inventory_id);
+            }
+        }
+
         return await supabase.from('job_items').insert([item]).select().single();
     },
 
     async addJobItems(items: any[]): Promise<{ data: any, error: any }> {
         if (!isSupabaseConfigured()) return { data: null, error: 'Supabase not configured' };
+
+        // If items are parts and marked as 'Park Mode', deduct stock immediately
+        for (const item of items) {
+            if (item.type === 'part' && item.inventory_id && item.status === 'Park Mode') {
+                const { data: inv } = await supabase.from('inventory').select('stock_level').eq('id', item.inventory_id).single();
+                if (inv) {
+                    await supabase.from('inventory').update({
+                        stock_level: Math.max(0, inv.stock_level - (item.quantity || 0))
+                    }).eq('id', item.inventory_id);
+                }
+            }
+        }
+
         return await supabase.from('job_items').insert(items).select();
+    },
+
+    async resolveParkedItem(itemId: string, status: 'Used' | 'Returned'): Promise<{ error: any }> {
+        if (!isSupabaseConfigured()) return { error: 'Supabase not configured' };
+
+        try {
+            const { data: item, error: fetchError } = await supabase
+                .from('job_items')
+                .select('*, inventory_id, quantity')
+                .eq('id', itemId)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            // If returning to stock, add back to inventory
+            if (status === 'Returned' && item.inventory_id) {
+                const { data: inv } = await supabase.from('inventory').select('stock_level').eq('id', item.inventory_id).single();
+                if (inv) {
+                    await supabase.from('inventory').update({
+                        stock_level: inv.stock_level + (item.quantity || 0)
+                    }).eq('id', item.inventory_id);
+                }
+            }
+
+            return await supabase.from('job_items').update({ status }).eq('id', itemId);
+        } catch (error) {
+            console.error('Error resolving parked item:', error);
+            return { error };
+        }
     },
 
     async getEngineers(): Promise<any[]> {
@@ -373,6 +426,92 @@ export const dataService = {
         } catch (error) {
             console.error('Error fetching top parts:', error);
             return [];
+        }
+    },
+
+    async getAvailableTags(): Promise<number[]> {
+        if (!isSupabaseConfigured()) return Array.from({ length: 200 }, (_, i) => i + 1);
+        try {
+            // 1. Get used tags from active jobs
+            const { data: jobData, error: jobError } = await supabase
+                .from('jobs')
+                .select('tag_number')
+                .not('tag_number', 'is', null)
+                .in('status', ['Booked In', 'In Progress', 'Waiting for Parts', 'Ready to Continue', 'Ready for Collection', 'Completed']);
+
+            if (jobError) throw jobError;
+            const usedTags = new Set((jobData || []).map(j => j.tag_number));
+
+            // 2. Get active tags from tag_pool
+            const { data: poolData, error: poolError } = await supabase
+                .from('tag_pool')
+                .select('tag_number')
+                .eq('is_active', true);
+
+            if (poolError) throw poolError;
+
+            const poolTags = (poolData || []).map(p => p.tag_number);
+            return poolTags.filter(t => !usedTags.has(t)).sort((a, b) => a - b);
+        } catch (error) {
+            console.error('Error fetching available tags:', error);
+            return Array.from({ length: 200 }, (_, i) => i + 1);
+        }
+    },
+
+    async getAllTags(): Promise<{ tag_number: number; is_active: boolean }[]> {
+        if (!isSupabaseConfigured()) return Array.from({ length: 200 }, (_, i) => ({ tag_number: i + 1, is_active: true }));
+        try {
+            const { data, error } = await supabase
+                .from('tag_pool')
+                .select('tag_number, is_active')
+                .order('tag_number', { ascending: true });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching all tags:', error);
+            return [];
+        }
+    },
+
+    async toggleTagStatus(tagNumber: number, isActive: boolean) {
+        if (!isSupabaseConfigured()) return { error: null };
+        return await supabase
+            .from('tag_pool')
+            .update({ is_active: isActive })
+            .eq('tag_number', tagNumber);
+    },
+
+    async addTag(tagNumber: number) {
+        if (!isSupabaseConfigured()) return { error: null };
+        return await supabase
+            .from('tag_pool')
+            .insert([{ tag_number: tagNumber, is_active: true }]);
+    },
+
+    async removeTag(tagNumber: number) {
+        if (!isSupabaseConfigured()) return { error: null };
+        return await supabase
+            .from('tag_pool')
+            .delete()
+            .eq('tag_number', tagNumber);
+    },
+
+    async isTagAvailable(tagNumber: number): Promise<boolean> {
+        if (!isSupabaseConfigured()) return true;
+        try {
+            const { data, error } = await supabase
+                .from('jobs')
+                .select('id')
+                .eq('tag_number', tagNumber)
+                .in('status', ['Booked In', 'In Progress', 'Waiting for Parts', 'Ready to Continue', 'Ready for Collection', 'Completed'])
+                .maybeSingle();
+
+            if (error) throw error;
+            return !data;
+        } catch (error) {
+            console.error('Error checking tag availability:', error);
+            return true;
         }
     }
 

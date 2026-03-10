@@ -28,10 +28,12 @@ export interface InventoryItem {
 export interface Job {
     id: string;
     created_at: string;
-    job_number: number;
     customer_id: string;
+    tag_number?: number;
     machine_details?: string;
     problem_description?: string;
+    diagnosis_notes?: string;
+    repair_summary?: string;
     status: 'Booked In' | 'In Progress' | 'Waiting for Parts' | 'Ready to Continue' | 'Ready for Collection' | 'Completed' | 'Closed';
     mechanic_id?: string;
     date_scheduled?: string;
@@ -72,6 +74,7 @@ export interface JobItem {
     unit_price: number;
     total: number;
     type: 'part' | 'labor' | 'service';
+    status?: 'Park Mode' | 'Used' | 'Returned';
     // Joins
     inventory?: InventoryItem;
     jobs?: Job;
@@ -167,4 +170,10 @@ export interface Settings {
     webhook_url: string;
     company_logo_url?: string;
     updated_at: string;
+}
+
+export interface TagPool {
+    tag_number: number;
+    is_active: boolean;
+    created_at: string;
 }

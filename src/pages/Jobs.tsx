@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Calendar, User, FileText, Trash2, Pencil, Wrench, Activity, Plus, ArrowRight, Package, AlertCircle } from 'lucide-react';
+import { Search, Calendar, User, FileText, Trash2, Pencil, Wrench, Activity, Plus, ArrowRight, Package, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Job, Customer } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
 import Modal from '../components/Modal';
@@ -29,8 +29,11 @@ const Jobs = () => {
         status: 'Booked In',
         priority: 'Normal',
         date_scheduled: new Date().toISOString().split('T')[0],
-        notes: ''
+        notes: '',
+        tag_number: undefined
     });
+
+    const [availableTags, setAvailableTags] = useState<number[]>([]);
 
     const [modalItems, setModalItems] = useState<any[]>([]);
     const [inventory, setInventory] = useState<any[]>([]);
@@ -49,8 +52,13 @@ const Jobs = () => {
 
     const loadData = async () => {
         setLoading(true);
-        await Promise.all([fetchJobs(), fetchCustomers(), fetchEngineers(), fetchInventory()]);
+        await Promise.all([fetchJobs(), fetchCustomers(), fetchEngineers(), fetchInventory(), fetchAvailableTags()]);
         setLoading(false);
+    };
+
+    const fetchAvailableTags = async () => {
+        const tags = await dataService.getAvailableTags();
+        setAvailableTags(tags);
     };
 
     const fetchInventory = async () => {
@@ -90,7 +98,8 @@ const Jobs = () => {
             priority: job.priority || 'Normal',
             date_scheduled: job.date_scheduled ? job.date_scheduled.split('T')[0] : '',
             date_completed: job.date_completed ? job.date_completed.split('T')[0] : '',
-            notes: job.notes || ''
+            notes: job.notes || '',
+            tag_number: job.tag_number
         });
         setEditingId(job.id);
 
@@ -156,7 +165,7 @@ const Jobs = () => {
                 finalCustomerId = custData.id;
             }
 
-            const jobToSave = {
+            const jobPayload = {
                 customer_id: finalCustomerId,
                 machine_details: newJob.service_type || 'General Service',
                 problem_description: newJob.notes || null,
@@ -164,13 +173,14 @@ const Jobs = () => {
                 priority: newJob.priority || 'Normal',
                 mechanic_id: newJob.engineer_name || null,
                 date_scheduled: newJob.date_scheduled ? new Date(newJob.date_scheduled).toISOString() : null,
-                date_completed: newJob.date_completed ? new Date(newJob.date_completed).toISOString() : null
+                date_completed: newJob.date_completed ? new Date(newJob.date_completed).toISOString() : null,
+                tag_number: newJob.tag_number || null
             };
 
             let jobId = editingId;
             if (editingId) {
                 // Update
-                const { error } = await dataService.updateJob(editingId, jobToSave as any);
+                const { error } = await dataService.updateJob(editingId, jobPayload as any);
                 if (error) throw error;
 
                 // For updates, we'll keep it simple: delete old items and add new ones
@@ -178,7 +188,7 @@ const Jobs = () => {
                 await supabase.from('job_items').delete().eq('job_id', editingId);
             } else {
                 // Create
-                const { data, error } = await dataService.createJob(jobToSave as any);
+                const { data, error } = await dataService.createJob(jobPayload as any);
                 if (error) throw error;
                 if (!data) throw new Error("Failed to create job");
                 jobId = data.id;
@@ -241,7 +251,7 @@ const Jobs = () => {
             job.customers?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             job.service_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             job.engineer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            job.job_number?.toString().toLowerCase().includes(searchTerm.toLowerCase());
+            job.tag_number?.toString().toLowerCase().includes(searchTerm.toLowerCase());
 
         return matchesTab && matchesSearch;
     });
@@ -337,8 +347,8 @@ const Jobs = () => {
                                     ) : filteredJobs.map((job) => (
                                         <tr key={job.id} className="hover:bg-slate-50/50 transition-colors">
                                             <td className="px-6 py-4">
-                                                <div className="font-bold text-slate-900">#{job.job_number}</div>
-                                                <div className="text-xs text-slate-500">ID</div>
+                                                <div className="font-bold text-slate-900">Tag #{job.tag_number || 'N/A'}</div>
+                                                <div className="text-[10px] text-slate-400 font-mono">{job.id.slice(0, 8)}</div>
                                             </td>
                                             <td className="px-6 py-4 font-medium text-slate-700">{job.customers?.name || 'Unknown'}</td>
                                             <td className="px-6 py-4 text-sm text-slate-600">{job.service_type}</td>
@@ -467,7 +477,7 @@ const Jobs = () => {
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <div className="text-[11px] font-bold text-slate-400 tracking-wider">#{job.job_number}</div>
+                                            <div className="text-[11px] font-bold text-slate-400 tracking-wider">TAG #{job.tag_number || 'N/A'}</div>
                                             {job.priority && job.priority !== 'Normal' && (
                                                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${job.priority === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                                                     }`}>
@@ -587,18 +597,49 @@ const Jobs = () => {
                         <div className="bg-white p-4 rounded-xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="col-span-2">
                                 <h3 className="font-bold text-slate-900 mb-4">Job Details</h3>
-                                <SearchableSelect
-                                    label="Service Type"
-                                    options={[
-                                        { value: 'Machine Service', label: 'Machine Service' },
-                                        { value: 'Breakdown', label: 'Breakdown' },
-                                        { value: 'Emergency Call Out', label: 'Emergency Call Out' }
-                                    ]}
-                                    allowCustom={true}
-                                    value={newJob.service_type || ''}
-                                    onChange={val => setNewJob({ ...newJob, service_type: val })}
-                                    icon={<FileText size={16} />}
-                                />
+                                {availableTags.length <= 10 && availableTags.length > 0 && (
+                                    <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-3 text-amber-800 text-sm">
+                                        <AlertTriangle size={18} className="shrink-0" />
+                                        <span><strong>Warning:</strong> Only {availableTags.length} tags remaining in the pool.</span>
+                                    </div>
+                                )}
+                                {availableTags.length === 0 && (
+                                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-800 text-sm">
+                                        <AlertCircle size={18} className="shrink-0" />
+                                        <span><strong>Critical:</strong> Tag pool is empty. Please close active jobs to release tags.</span>
+                                    </div>
+                                )}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="col-span-1">
+                                        <SearchableSelect
+                                            label="Select Tag Number *"
+                                            options={[
+                                                ...(editingId && newJob.tag_number && !availableTags.includes(newJob.tag_number)
+                                                    ? [{ value: newJob.tag_number.toString(), label: `Tag #${newJob.tag_number} (Current)` }]
+                                                    : []),
+                                                ...availableTags.map(t => ({ value: t.toString(), label: `Tag #${t}` }))
+                                            ]}
+                                            value={newJob.tag_number?.toString() || ''}
+                                            onChange={val => setNewJob({ ...newJob, tag_number: parseInt(val) })}
+                                            placeholder="Choose 1-200..."
+                                            icon={<Package size={16} />}
+                                        />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <SearchableSelect
+                                            label="Service Type"
+                                            options={[
+                                                { value: 'Machine Service', label: 'Machine Service' },
+                                                { value: 'Breakdown', label: 'Breakdown' },
+                                                { value: 'Emergency Call Out', label: 'Emergency Call Out' }
+                                            ]}
+                                            allowCustom={true}
+                                            value={newJob.service_type || ''}
+                                            onChange={val => setNewJob({ ...newJob, service_type: val })}
+                                            icon={<FileText size={16} />}
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="col-span-1">

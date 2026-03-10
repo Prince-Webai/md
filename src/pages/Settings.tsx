@@ -1,28 +1,100 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Globe, Phone, Mail, MapPin, Building, CreditCard, Receipt, Activity, User, Image } from 'lucide-react';
 import { dataService } from '../services/dataService';
-import { Settings as SettingsType } from '../types';
+import { Settings as SettingsType, TagPool } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { Package, Power, Plus, Trash2, AlertCircle, AlertTriangle } from 'lucide-react';
+import Modal from '../components/Modal';
+
+import { useToast } from '../context/ToastContext';
 
 const Settings = () => {
+    const { showToast } = useToast();
     const [settings, setSettings] = useState<SettingsType | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const { user } = useAuth();
     const [userName, setUserName] = useState('');
+    const [tags, setTags] = useState<TagPool[]>([]);
+    const [newTagNumber, setNewTagNumber] = useState('');
+    const [isTagsLoading, setIsTagsLoading] = useState(false);
+    const [tagToDelete, setTagToDelete] = useState<number | null>(null);
 
     useEffect(() => {
         if (user) {
             setUserName(user.user_metadata?.name || user.email?.split('@')[0] || 'Admin User');
             if (user.user_metadata?.role !== 'Engineer') {
                 fetchSettings();
+                fetchTags();
             } else {
                 setIsLoading(false); // Engineers don't need to load company settings
             }
         }
     }, [user]);
+
+    const fetchTags = async () => {
+        setIsTagsLoading(true);
+        try {
+            const data = await dataService.getAllTags();
+            setTags(data as TagPool[]);
+        } catch (error) {
+            console.error('Error fetching tags:', error);
+        } finally {
+            setIsTagsLoading(false);
+        }
+    };
+
+    const handleToggleTag = async (tagNumber: number, currentStatus: boolean) => {
+        const { error } = await dataService.toggleTagStatus(tagNumber, !currentStatus);
+        if (!error) {
+            fetchTags();
+        }
+    };
+
+    const handleAddTag = async () => {
+        if (!newTagNumber) return;
+        const num = parseInt(newTagNumber);
+        if (isNaN(num)) return;
+
+        const { error } = await dataService.addTag(num);
+        if (!error) {
+            setNewTagNumber('');
+            fetchTags();
+            showToast('Success', `Tag #${num} added to pool`, 'success');
+        } else {
+            console.error('Error adding tag:', error);
+            showToast('Error', 'Failed to add tag. It may already exist.', 'error');
+        }
+    };
+
+    const handleRemoveTag = async (tagNumber: number) => {
+        setTagToDelete(tagNumber);
+    };
+
+    const confirmRemoveTag = async () => {
+        if (!tagToDelete) return;
+        const tagNumber = tagToDelete;
+        console.log('Confirmed removal of tag:', tagNumber);
+
+        try {
+            const { error } = await dataService.removeTag(tagNumber);
+            if (!error) {
+                console.log('Successfully removed tag:', tagNumber);
+                fetchTags();
+                showToast('Success', `Tag #${tagNumber} removed from pool`, 'success');
+            } else {
+                console.error('Error removing tag:', error);
+                showToast('Error', 'Failed to remove tag. It may be assigned to a job.', 'error');
+            }
+        } catch (err) {
+            console.error('Exception removing tag:', err);
+            showToast('Error', 'An unexpected error occurred while removing the tag.', 'error');
+        } finally {
+            setTagToDelete(null);
+        }
+    };
 
     const fetchSettings = async () => {
         try {
@@ -338,6 +410,118 @@ const Settings = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Tag Management */}
+                        <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 space-y-6 lg:col-span-2">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                        <Package size={20} />
+                                    </div>
+                                    <h2 className="text-xl font-bold text-slate-800">Tag Pool Management</h2>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        placeholder="Tag #"
+                                        className="w-24 px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-delaval-blue/20 outline-none"
+                                        value={newTagNumber}
+                                        onChange={e => setNewTagNumber(e.target.value)}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleAddTag}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-delaval-blue text-white rounded-lg text-sm font-bold hover:bg-delaval-blue/90 transition-all shadow-sm"
+                                    >
+                                        <Plus size={16} />
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-slate-500">Manage the reusable tag pool (1-200). Deactivated tags will not appear in the job selection dropdown.</p>
+
+                            {isTagsLoading ? (
+                                <div className="flex justify-center py-8">
+                                    <Activity className="animate-spin text-slate-300" size={24} />
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-3">
+                                    {tags.map(tag => (
+                                        <div
+                                            key={tag.tag_number}
+                                            className={`relative group p-3 rounded-xl border transition-all flex flex-col items-center justify-center gap-2 ${tag.is_active
+                                                ? 'bg-white border-slate-100 shadow-sm hover:border-delaval-blue/30'
+                                                : 'bg-slate-50 border-slate-200 opacity-60'
+                                                }`}
+                                        >
+                                            <span className={`text-lg font-bold ${tag.is_active ? 'text-slate-800' : 'text-slate-400'}`}>
+                                                #{tag.tag_number}
+                                            </span>
+
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleToggleTag(tag.tag_number, tag.is_active)}
+                                                    title={tag.is_active ? 'Deactivate' : 'Activate'}
+                                                    className={`p-1 rounded-md transition-colors ${tag.is_active ? 'text-amber-500 hover:bg-amber-50' : 'text-green-500 hover:bg-green-50'
+                                                        }`}
+                                                >
+                                                    <Power size={14} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveTag(tag.tag_number)}
+                                                    title="Delete"
+                                                    className="p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+
+                                            {!tag.is_active && (
+                                                <div className="absolute top-1 right-1">
+                                                    <AlertCircle size={10} className="text-slate-400" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Confirmation Modal for Tag Deletion */}
+                        {tagToDelete && (
+                            <Modal
+                                isOpen={!!tagToDelete}
+                                onClose={() => setTagToDelete(null)}
+                                title="Confirm Tag Removal"
+                            >
+                                <div className="p-6 space-y-4">
+                                    <div className="flex items-center gap-3 text-amber-600 bg-amber-50 p-4 rounded-xl border border-amber-100">
+                                        <AlertTriangle size={24} />
+                                        <p className="font-medium text-sm">
+                                            Are you sure you want to remove <strong>Tag #{tagToDelete}</strong> from the pool?
+                                            This action cannot be undone.
+                                        </p>
+                                    </div>
+                                    <div className="flex justify-end gap-3 mt-6">
+                                        <button
+                                            onClick={() => setTagToDelete(null)}
+                                            className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-50 rounded-lg transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={confirmRemoveTag}
+                                            className="px-6 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-all shadow-lg shadow-red-600/20"
+                                        >
+                                            Confirm Delete
+                                        </button>
+                                    </div>
+                                </div>
+                            </Modal>
+                        )}
                     </>
                 )}
             </form>
