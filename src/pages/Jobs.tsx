@@ -39,6 +39,7 @@ const Jobs = () => {
     const [inventory, setInventory] = useState<any[]>([]);
     const [newItem, setNewItem] = useState({ description: '', quantity: 1, unit_price: 0, type: 'part' as const });
     const [isAddingCustom, setIsAddingCustom] = useState(false);
+    const [pendingPart, setPendingPart] = useState<{ id: string; name: string; price: number; qty: number } | null>(null);
 
     // Inline Customer Creation State
     const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
@@ -797,6 +798,48 @@ const Jobs = () => {
                                         </button>
                                     </div>
                                 </div>
+                            ) : pendingPart ? (
+                                // Qty confirmation row after selecting from inventory
+                                <div className="flex items-end gap-3 bg-green-50 border border-green-100 rounded-xl p-3">
+                                    <div className="flex-1">
+                                        <div className="text-xs font-bold text-slate-500 mb-1">Part</div>
+                                        <div className="text-sm font-bold text-slate-800">{pendingPart.name}</div>
+                                        <div className="text-xs text-slate-400">€{pendingPart.price} each</div>
+                                    </div>
+                                    <div className="w-20">
+                                        <label className="block text-xs font-bold text-slate-500 mb-1">Qty</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-delaval-blue text-sm font-bold text-center"
+                                            value={pendingPart.qty}
+                                            onChange={e => setPendingPart({ ...pendingPart, qty: parseInt(e.target.value) || 1 })}
+                                            autoFocus
+                                        />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setPendingPart(null)}
+                                            className="h-[38px] px-3 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
+                                        >✕</button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setModalItems([...modalItems, {
+                                                    description: pendingPart.name,
+                                                    quantity: pendingPart.qty,
+                                                    unit_price: pendingPart.price,
+                                                    type: 'part',
+                                                    inventory_id: pendingPart.id
+                                                }]);
+                                                setPendingPart(null);
+                                            }}
+                                            className="h-[38px] px-4 text-sm font-bold text-white bg-delaval-blue hover:bg-green-700 rounded-lg transition-colors"
+                                        >Add</button>
+                                    </div>
+                                </div>
                             ) : (
                                 <div className="grid grid-cols-[1fr_auto] gap-3">
                                     <SearchableSelect
@@ -806,13 +849,7 @@ const Jobs = () => {
                                         onChange={(id) => {
                                             const invItem = inventory.find(i => i.id === id);
                                             if (invItem) {
-                                                setModalItems([...modalItems, {
-                                                    description: invItem.name,
-                                                    quantity: 1,
-                                                    unit_price: invItem.sell_price,
-                                                    type: 'part',
-                                                    inventory_id: invItem.id
-                                                }]);
+                                                setPendingPart({ id: invItem.id, name: invItem.name, price: invItem.sell_price, qty: 1 });
                                             }
                                         }}
                                         placeholder="Search inventory parts..."
@@ -1100,6 +1137,48 @@ const Jobs = () => {
                                                 </button>
                                             </div>
                                         </div>
+                                    ) : pendingPart ? (
+                                        // Mobile: qty confirmation step
+                                        <div className="space-y-3 bg-green-50 p-3 rounded-2xl border border-green-100">
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Selected Part</div>
+                                                <div className="text-[15px] font-bold text-slate-900">{pendingPart.name}</div>
+                                                <div className="text-xs text-slate-400">€{pendingPart.price} each</div>
+                                            </div>
+                                            <div className="flex gap-3 items-end">
+                                                <div className="flex-1">
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Quantity</div>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        step="1"
+                                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-[15px] font-bold outline-none"
+                                                        value={pendingPart.qty}
+                                                        onChange={e => setPendingPart({ ...pendingPart, qty: parseInt(e.target.value) || 1 })}
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setPendingPart(null)}
+                                                    className="px-4 py-2.5 text-sm font-bold text-slate-500 bg-white border border-slate-200 rounded-xl"
+                                                >Cancel</button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setModalItems([...modalItems, {
+                                                            description: pendingPart.name,
+                                                            quantity: pendingPart.qty,
+                                                            unit_price: pendingPart.price,
+                                                            type: 'part',
+                                                            inventory_id: pendingPart.id
+                                                        }]);
+                                                        setPendingPart(null);
+                                                    }}
+                                                    className="px-4 py-2.5 text-sm font-bold text-white bg-[#0A8043] rounded-xl"
+                                                >Add</button>
+                                            </div>
+                                        </div>
                                     ) : (
                                         <div className="space-y-3">
                                             <select
@@ -1109,13 +1188,7 @@ const Jobs = () => {
                                                     const id = e.target.value;
                                                     const invItem = inventory.find(i => i.id === id);
                                                     if (invItem) {
-                                                        setModalItems([...modalItems, {
-                                                            description: invItem.name,
-                                                            quantity: 1,
-                                                            unit_price: invItem.sell_price,
-                                                            type: 'part',
-                                                            inventory_id: invItem.id
-                                                        }]);
+                                                        setPendingPart({ id: invItem.id, name: invItem.name, price: invItem.sell_price, qty: 1 });
                                                     }
                                                 }}
                                             >
