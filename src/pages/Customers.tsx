@@ -338,7 +338,7 @@ const Customers = () => {
         }
     };
 
-    const generateServiceHistory = async () => {
+    const generateCombinedReport = async () => {
         if (!selectedCustomer) return;
         setIsGenerating(true);
         try {
@@ -352,11 +352,13 @@ const Customers = () => {
 
             const doc = new jsPDF();
             const primaryColor: [number, number, number] = [10, 128, 67];
+            const secondaryBg: [number, number, number] = [249, 250, 251];
+            const borderColor: [number, number, number] = [229, 231, 235];
 
-            // Header
-            doc.setFillColor(248, 250, 251);
-            doc.rect(0, 0, 210, 45, 'F');
-
+            // Header Layout (Consistent with Completion Report)
+            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.rect(0, 0, 210, 4, 'F');
+            
             const addLogo = async (doc: any) => {
                 if (s.company_logo_url) {
                     try {
@@ -389,42 +391,108 @@ const Customers = () => {
             doc.text(s.company_address || '', hasLogo ? 48 : 14, hasLogo ? 18 : 32);
             doc.text(`Tel: ${s.company_phone || ''} | Email: ${s.company_email || ''}`, hasLogo ? 48 : 14, hasLogo ? 23 : 37);
 
-            doc.setTextColor(0, 0, 0);
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
             doc.setFontSize(18);
             doc.setFont('helvetica', 'bold');
-            doc.text('SERVICE HISTORY REPORT', 196, 25, { align: 'right' });
+            doc.text('COMBINED WORK REPORT', 196, 25, { align: 'right' });
 
-            // Customer Info
-            doc.setFontSize(12);
-            doc.text('CUSTOMER:', 14, 55);
-            doc.setFontSize(11);
+            // Customer Info Box
+            doc.setFillColor(secondaryBg[0], secondaryBg[1], secondaryBg[2]);
+            doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+            doc.roundedRect(14, 52, 182, 30, 2, 2, 'FD');
+
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text('CUSTOMER INFORMATION:', 20, 60);
+
             doc.setFont('helvetica', 'normal');
             doc.text([
-                selectedCustomer.name,
-                selectedCustomer.address_line1 || selectedCustomer.address || 'No address',
-                selectedCustomer.phone || 'No phone'
-            ], 14, 62);
+                `Name: ${selectedCustomer.name}`,
+                `Address: ${selectedCustomer.address_line1 || selectedCustomer.address || 'No address'}`,
+                `Phone: ${selectedCustomer.phone || 'No phone'}`
+            ], 20, 66);
 
-            // History Table
-            autoTable(doc, {
-                startY: 85,
-                head: [['DATE', 'JOB NO.', 'SERVICE TYPE', 'ENGINEER', 'STATUS']],
-                body: customerJobs.map(j => [
-                    new Date(j.created_at).toLocaleDateString(),
-                    `#${j.job_number}`,
-                    j.service_type || 'General Service',
-                    j.engineer_name || 'Unassigned',
-                    j.status.toUpperCase()
-                ]),
-                theme: 'striped',
-                headStyles: { fillColor: primaryColor, textColor: 255 },
-                styles: { fontSize: 9 }
-            });
+            // Stats Summary
+            doc.text([
+                `Total Jobs: ${stats.totalJobs}`,
+                `Last Service: ${customerJobs[0] ? new Date(customerJobs[0].created_at).toLocaleDateString() : 'N/A'}`
+            ], 130, 66);
 
-            doc.save(`ServiceHistory_${selectedCustomer.name.replace(/\s+/g, '_')}.pdf`);
-            showToast('Success', 'Service history PDF generated', 'success');
+            let currentY = 95;
+
+            // Iterate through jobs
+            for (const job of customerJobs) {
+                // Check for page break
+                if (currentY > 240) {
+                    doc.addPage();
+                    currentY = 20;
+                }
+
+                // Job Divider & Header
+                doc.setFillColor(240, 240, 240);
+                doc.rect(14, currentY, 182, 10, 'F');
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`JOB #${job.job_number || 'N/A'} - ${job.service_type || 'General Service'}`, 18, currentY + 7);
+                doc.setFontSize(9);
+                doc.text(new Date(job.created_at).toLocaleDateString(), 192, currentY + 7, { align: 'right' });
+
+                currentY += 15;
+
+                // Problem/Diagnosis/Repair
+                if (job.repair_summary || job.recommendations) {
+                    doc.setFont('helvetica', 'italic');
+                    doc.setTextColor(100, 100, 100);
+                    const notes = [
+                        job.repair_summary ? `Summary: ${job.repair_summary}` : '',
+                        job.recommendations ? `Recommendations: ${job.recommendations}` : ''
+                    ].filter(Boolean);
+                    const splitNotes = doc.splitTextToSize(notes.join(' | '), 175);
+                    doc.text(splitNotes, 18, currentY);
+                    currentY += (splitNotes.length * 5) + 5;
+                }
+
+                // Job Items Table
+                if (job.job_items && job.job_items.length > 0) {
+                    autoTable(doc, {
+                        startY: currentY,
+                        head: [['ITEM DESCRIPTION', 'QTY', 'TYPE', 'PRICE', 'TOTAL']],
+                        body: job.job_items.map((i: any) => [
+                            i.description,
+                            i.quantity.toString(),
+                            i.type.toUpperCase(),
+                            `€${(i.unit_price || 0).toFixed(2)}`,
+                            `€${(i.total || 0).toFixed(2)}`
+                        ]),
+                        theme: 'striped',
+                        headStyles: { fillColor: primaryColor, textColor: 255, fontSize: 8 },
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        margin: { left: 14, right: 14 }
+                    });
+                    currentY = (doc as any).lastAutoTable.finalY + 15;
+                } else {
+                    doc.setFont('helvetica', 'normal');
+                    doc.text('No parts/labor logged for this job.', 18, currentY);
+                    currentY += 15;
+                }
+            }
+
+            // Footer
+            const pageCount = (doc as any).internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text(`Generated by MD Burke Workshop System | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+            }
+
+            doc.save(`CombinedReport_${selectedCustomer.name.replace(/\s+/g, '_')}.pdf`);
+            showToast('Success', 'Combined work report generated', 'success');
         } catch (error: any) {
-            showToast('Error', 'Failed to generate PDF', 'error');
+            console.error('PDF Error:', error);
+            showToast('Error', 'Failed to generate combined report', 'error');
         } finally {
             setIsGenerating(false);
         }
@@ -507,12 +575,12 @@ const Customers = () => {
                                             Sync with POS
                                         </button>
                                         <button
-                                            onClick={generateServiceHistory}
+                                            onClick={generateCombinedReport}
                                             disabled={isGenerating}
                                             className="btn border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2"
                                         >
                                             <Download size={16} />
-                                            {isGenerating ? 'Generating...' : 'Download History'}
+                                            {isGenerating ? 'Generating...' : 'Download Combined Report'}
                                         </button>
                                         <button
                                             onClick={handleEditClick}
@@ -874,12 +942,22 @@ const Customers = () => {
                                 </div>
                                 <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">New Job</span>
                             </Link>
-                            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
+                            <button
+                                onClick={generateCombinedReport}
+                                disabled={isGenerating}
+                                className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform w-full disabled:opacity-50"
+                            >
                                 <div className="w-10 h-10 rounded-full bg-[#E6F9F3] text-[#14A637] flex items-center justify-center">
-                                    <FileText size={20} />
+                                    {isGenerating ? (
+                                        <div className="w-5 h-5 border-2 border-[#14A637] border-t-transparent rounded-full animate-spin"></div>
+                                    ) : (
+                                        <FileText size={20} />
+                                    )}
                                 </div>
-                                <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">Report</span>
-                            </div>
+                                <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">
+                                    {isGenerating ? 'Generating...' : 'Report'}
+                                </span>
+                            </button>
                         </div>
 
                         {/* Equipment Section */}
