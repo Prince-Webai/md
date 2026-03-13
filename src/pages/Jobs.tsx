@@ -430,7 +430,7 @@ const Jobs = () => {
 
                 <div className="sticky top-0 z-30">
                     {/* Green Header Section */}
-                    <div className="bg-[#0A8043] text-white pt-6 pb-8 px-5 relative w-full shadow-lg">
+                    <div className="bg-[#0A8043] text-white pt-6 pb-16 px-5 relative w-full">
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-white/60 text-[10px] font-bold mb-1 uppercase tracking-widest">Workshop Pipeline</p>
@@ -460,11 +460,11 @@ const Jobs = () => {
                     </div>
 
                     {/* Search & Tabs Overlap Container */}
-                    <div className="bg-white pt-4 pb-0">
+                    <div className="px-5 -mt-8 relative z-20">
 
                     {/* Search Bar */}
-                    <div className="px-5 mb-4 mt-2">
-                        <div className="bg-slate-50 rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-sm">
+                    <div className="mb-4 mt-2">
+                        <div className="bg-white rounded-2xl flex items-center px-4 py-3.5 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
                             <Search size={18} className="text-slate-400 mr-3 shrink-0" />
                             <input
                                 type="text"
