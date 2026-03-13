@@ -10,9 +10,10 @@ interface ModalProps {
     children: React.ReactNode;
     size?: 'default' | 'wide' | 'xl';
     overflowVisible?: boolean;
+    footer?: React.ReactNode;
 }
 
-const Modal = ({ isOpen, onClose, title, children, size = 'default', overflowVisible = false }: ModalProps) => {
+const Modal = ({ isOpen, onClose, title, children, size = 'default', overflowVisible = false, footer }: ModalProps) => {
     const modalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -56,6 +57,11 @@ const Modal = ({ isOpen, onClose, title, children, size = 'default', overflowVis
                 <div className={`flex-1 ${overflowVisible ? 'overflow-visible' : 'overflow-y-auto'} p-6`}>
                     {children}
                 </div>
+                {footer && (
+                    <div className="flex-none px-6 py-4 border-t bg-slate-50/50 rounded-b-xl">
+                        {footer}
+                    </div>
+                )}
             </div>
         </div>,
         document.body

@@ -35,6 +35,8 @@ const JobDetails = () => {
     const [mechanicSignOff, setMechanicSignOff] = useState('');
     const [timeLeft, setTimeLeft] = useState<string>('');
     const [settings, setSettings] = useState<Settings | null>(null);
+    const [history, setHistory] = useState<Job[]>([]);
+    const [activeTab, setActiveTab] = useState<'items' | 'history'>('items');
 
     // Refresh timer logic when job updates
     useEffect(() => {
@@ -190,6 +192,12 @@ const JobDetails = () => {
             setRepairSummary(data.repair_summary || '');
             setRecommendations(data.recommendations || '');
             setMechanicSignOff(data.mechanic_sign_off_name || '');
+            
+            // Fetch history
+            if (data.customer_id) {
+                const hist = await dataService.getJobHistory(data.customer_id, data.id);
+                setHistory(hist);
+            }
         }
     };
 
@@ -650,7 +658,7 @@ const JobDetails = () => {
     };
 
 
-    const [mobileTab, setMobileTab] = useState<'details' | 'parts' | 'labor'>('details');
+    const [mobileTab, setMobileTab] = useState<'details' | 'parts' | 'labor' | 'history'>('details');
 
     if (!job) return <div className="p-8">Loading...</div>;
 
@@ -697,8 +705,25 @@ const JobDetails = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="section-card p-6">
-                            <h2 className="text-lg font-bold mb-4">Service Items</h2>
+                        <div className="section-card">
+                            <div className="flex border-b border-slate-100 px-6">
+                                <button
+                                    onClick={() => setActiveTab('items')}
+                                    className={`py-4 text-sm font-bold border-b-2 transition-colors mr-8 ${activeTab === 'items' ? 'border-delaval-blue text-delaval-blue' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Service Items
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('history')}
+                                    className={`py-4 text-sm font-bold border-b-2 transition-colors ${activeTab === 'history' ? 'border-delaval-blue text-delaval-blue' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Job History ({history.length})
+                                </button>
+                            </div>
+
+                            {activeTab === 'items' ? (
+                                <div className="p-6">
+                                    <h2 className="text-lg font-bold mb-4">Service Items</h2>
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left">
                                     <thead className="bg-slate-50">
@@ -832,6 +857,47 @@ const JobDetails = () => {
                                             <Plus size={20} />
                                         </button>
                                     </div>
+                                    </div>
+                                )}
+                                </div>
+                            ) : (
+                                <div className="p-6">
+                                    <h2 className="text-lg font-bold mb-4">Job History</h2>
+                                    {history.length === 0 ? (
+                                        <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                            <Clock size={48} className="mx-auto text-slate-300 mb-4" />
+                                            <p className="text-slate-500 font-medium">No previous service history for this customer.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {history.map(h => (
+                                                <div 
+                                                    key={h.id} 
+                                                    className="p-4 bg-white border border-slate-100 rounded-xl hover:border-delaval-blue transition-all cursor-pointer group shadow-sm hover:shadow-md"
+                                                    onClick={() => navigate(`/jobs/${h.id}`)}
+                                                >
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
+                                                                #{h.tag_number || 'N/A'}
+                                                            </div>
+                                                            <span className="font-bold text-slate-900">{new Date(h.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                        </div>
+                                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                                                            h.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                                                        }`}>
+                                                            {h.status}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-slate-600 line-clamp-2">{h.notes || 'No description provided.'}</p>
+                                                    <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                                        <span>Engineer: {h.engineer_name || 'Unassigned'}</span>
+                                                        <span className="text-delaval-blue group-hover:underline">View Details →</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -1170,6 +1236,12 @@ const JobDetails = () => {
                         >
                             LABOUR
                         </button>
+                        <button
+                            className={`flex-1 pb-3 text-sm font-bold text-center border-b-2 transition-colors ${mobileTab === 'history' ? 'border-delaval-blue text-delaval-blue' : 'border-transparent text-slate-500'}`}
+                            onClick={() => setMobileTab('history')}
+                        >
+                            HISTORY
+                        </button>
                     </div>
 
                     {/* Tab Content */}
@@ -1449,6 +1521,42 @@ const JobDetails = () => {
                                         ))
                                     )}
                                 </div>
+                            </div>
+                        )}
+
+                        {mobileTab === 'history' && (
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center px-1 mb-2">
+                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Previous Jobs ({history.length})</span>
+                                </div>
+                                {history.length === 0 ? (
+                                    <p className="text-sm text-slate-500 text-center py-8 bg-white rounded-xl border border-slate-100">No previous history found.</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {history.map(h => (
+                                            <div 
+                                                key={h.id} 
+                                                className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 active:scale-[0.98] transition-all"
+                                                onClick={() => navigate(`/jobs/${h.id}`)}
+                                            >
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-delaval-blue bg-delaval-blue/10 px-2 py-0.5 rounded">Tag #{h.tag_number || 'N/A'}</span>
+                                                        <span className="text-sm font-bold text-slate-900">{new Date(h.created_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${h.status === 'Completed' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-500'}`}>
+                                                        {h.status}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-slate-500 line-clamp-2 mb-3">{h.notes || 'No notes available'}</p>
+                                                <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    <span>{h.engineer_name || 'Unassigned'}</span>
+                                                    <span className="text-delaval-blue">Details →</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

@@ -14,16 +14,21 @@ const Analytics = () => {
         topParts: []
     });
     const [loading, setLoading] = useState(true);
-    const [timeRange, setTimeRange] = useState(7); // default 7 days
+    const [timeRange, setTimeRange] = useState<number | 'custom'>(7); // default 7 days
+    const [startDate, setStartDate] = useState(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
         fetchAnalyticsData();
-    }, [timeRange]);
+    }, [timeRange, startDate, endDate]);
 
     const fetchAnalyticsData = async () => {
         try {
             setLoading(true);
-            const { jobs, items } = await dataService.getAnalyticsData(timeRange);
+            const { jobs, items } = await dataService.getAnalyticsData(
+                timeRange === 'custom' ? startDate : timeRange,
+                timeRange === 'custom' ? endDate : undefined
+            );
             const topParts = await dataService.getTopUsedParts(5);
 
             // 1. Calculate Summary Stats
@@ -52,8 +57,14 @@ const Analytics = () => {
 
             // 4. Job Trend Data
             const chartDataPoints: any[] = [];
-            for (let i = timeRange - 1; i >= 0; i--) {
-                const d = new Date();
+            const daysToChart = timeRange === 'custom' 
+                ? Math.min(Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 3600 * 24)) + 1, 90)
+                : timeRange;
+
+            const baseDate = timeRange === 'custom' ? new Date(endDate) : new Date();
+
+            for (let i = daysToChart - 1; i >= 0; i--) {
+                const d = new Date(baseDate);
                 d.setDate(d.getDate() - i);
                 const dateStr = d.toISOString().split('T')[0];
                 const jobsOnDate = jobs.filter((j: any) => j.created_at && j.created_at.startsWith(dateStr));
@@ -90,21 +101,48 @@ const Analytics = () => {
                     <h1 className="text-3xl font-black font-display text-slate-900 tracking-tight">Workshop Insights</h1>
                     <p className="text-slate-500 font-medium">Monitoring operational throughput and efficiency</p>
                 </div>
-                <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm self-stretch md:self-auto">
-                    {[
-                        { label: '7D', value: 7 },
-                        { label: '30D', value: 30 },
-                        { label: '90D', value: 90 },
-                        { label: 'All', value: 365 }
-                    ].map((range) => (
-                        <button
-                            key={range.value}
-                            onClick={() => setTimeRange(range.value)}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${timeRange === range.value ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}
-                        >
-                            {range.label}
-                        </button>
-                    ))}
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4 bg-white p-2 sm:p-3 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto">
+                    <div className="flex items-center gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100 w-full md:w-auto overflow-x-auto no-scrollbar">
+                        {[
+                            { label: '7D', value: 7 },
+                            { label: '30D', value: 30 },
+                            { label: '90D', value: 90 },
+                            { label: 'Year', value: 365 },
+                            { label: 'Custom', value: 'custom' as const }
+                        ].map((range) => (
+                            <button
+                                key={range.label}
+                                onClick={() => setTimeRange(range.value)}
+                                className={`flex-1 md:flex-none px-3 py-2 rounded-lg text-xs font-black transition-all whitespace-nowrap ${timeRange === range.value ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'text-slate-500 hover:text-slate-900 hover:bg-white'}`}
+                            >
+                                {range.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {timeRange === 'custom' && (
+                        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-2 animate-in slide-in-from-right-4 duration-300 w-full md:w-auto border-t sm:border-t-0 sm:border-l border-slate-200 pt-4 sm:pt-0 sm:pl-4">
+                            <div className="relative w-full sm:w-auto">
+                                <input
+                                    type="date"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-delaval-blue/20 outline-none"
+                                />
+                                <div className="absolute -top-4 left-0 text-[10px] font-black text-slate-400 uppercase tracking-widest">Start</div>
+                            </div>
+                            <span className="hidden sm:inline text-slate-300 font-bold">→</span>
+                            <div className="relative w-full sm:w-auto">
+                                <input
+                                    type="date"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-delaval-blue/20 outline-none"
+                                />
+                                <div className="absolute -top-4 left-0 text-[10px] font-black text-slate-400 uppercase tracking-widest">End</div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -147,11 +185,11 @@ const Analytics = () => {
             {/* Main Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Volume Trend */}
-                <div className="lg:col-span-2 section-card p-8">
-                    <div className="flex justify-between items-center mb-8">
+                <div className="lg:col-span-2 section-card p-4 sm:p-8">
+                    <div className="flex justify-between items-center mb-6 sm:mb-8">
                         <div>
-                            <h2 className="text-lg font-black text-slate-900">Workflow Volume</h2>
-                            <p className="text-sm font-medium text-slate-400">Scheduled throughput over time</p>
+                            <h2 className="text-base sm:text-lg font-black text-slate-900">Workflow Volume</h2>
+                            <p className="text-xs sm:text-sm font-medium text-slate-400">Scheduled throughput over time</p>
                         </div>
                     </div>
                     <div className="h-[300px] w-full">
@@ -167,7 +205,7 @@ const Analytics = () => {
                                         tickLine={false}
                                         tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
                                         dy={10}
-                                        interval={timeRange > 7 ? 'preserveStartEnd' : 0}
+                                        interval={(typeof timeRange === 'number' && timeRange > 7) || timeRange === 'custom' ? 'preserveStartEnd' : 0}
                                     />
                                     <YAxis hide domain={['dataMin', 'dataMax + 2']} />
                                     <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: '#f1f5f9', strokeWidth: 2 }} />

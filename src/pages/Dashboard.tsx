@@ -400,25 +400,25 @@ const Dashboard = () => {
                 </div>
 
                 {/* Overlapping Stats Bar - Re-adjusting for green header bleed */}
-                <div className="px-5 -mt-10 relative z-10 mb-8 w-full max-w-[500px] mx-auto">
-                    <div className="flex gap-3 justify-between">
-                        <div className="bg-white rounded-[1.25rem] p-4 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center">
-                            <span className="text-[28px] font-black text-[#FF6B00] leading-none mb-1">{loading ? '-' : stats.activeJobs}</span>
-                            <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Today</span>
+                <div className="px-5 -mt-10 relative z-10 mb-8 w-full max-w-full mx-auto">
+                    <div className="flex gap-2.5 justify-between">
+                        <div className="bg-white rounded-[1.25rem] p-3 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center min-w-0">
+                            <span className="text-[22px] font-black text-[#FF6B00] leading-none mb-1">{loading ? '-' : stats.activeJobs}</span>
+                            <span className="text-[8px] uppercase font-bold text-slate-400 tracking-wider">Today</span>
                         </div>
-                        <div className="bg-white rounded-[1.25rem] p-4 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center">
-                            <span className="text-[28px] font-black text-[#5C24D9] leading-none mb-1">{loading ? '-' : stats.lowStockItems}</span>
-                            <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Parts Low</span>
+                        <div className="bg-white rounded-[1.25rem] p-3 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center min-w-0">
+                            <span className="text-[22px] font-black text-[#5C24D9] leading-none mb-1">{loading ? '-' : stats.lowStockItems}</span>
+                            <span className="text-[8px] uppercase font-bold text-slate-400 tracking-wider">Low</span>
                         </div>
-                        <div className="bg-white rounded-[1.25rem] p-4 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center">
-                            <span className="text-[28px] font-black text-[#14A637] leading-none mb-1">{loading ? '-' : stats.completedToday}</span>
-                            <span className="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Done</span>
+                        <div className="bg-white rounded-[1.25rem] p-3 flex-1 shadow-[0_8px_20px_rgba(0,0,0,0.06)] border border-slate-100/50 flex flex-col items-center justify-center min-w-0">
+                            <span className="text-[22px] font-black text-[#14A637] leading-none mb-1">{loading ? '-' : stats.completedToday}</span>
+                            <span className="text-[8px] uppercase font-bold text-slate-400 tracking-wider">Done</span>
                         </div>
                     </div>
                 </div>
 
                 {/* 2x2 Quick Action Grid */}
-                <div className="px-5 grid grid-cols-2 gap-4 mb-10 w-full max-w-[500px] mx-auto">
+                <div className="px-5 grid grid-cols-2 gap-3 mb-10 w-full mx-auto">
                     {quickActions.filter(action => {
                         if (user?.user_metadata?.role === 'Engineer') {
                             return !['New Job', 'Add Customer'].includes(action.title);
@@ -427,12 +427,12 @@ const Dashboard = () => {
                     }).slice(0, 4).map((action, index) => {
                         const Icon = action.icon;
                         return (
-                            <Link key={index} to={action.path} className="bg-white rounded-[1.25rem] p-5 shadow-[0_4px_16px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col items-start active:scale-[0.98] active:bg-slate-50 transition-all">
-                                <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center ${action.mColor}`}>
-                                    <Icon size={20} />
+                            <Link key={index} to={action.path} className="bg-white rounded-[1.25rem] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col items-start active:scale-[0.98] active:bg-slate-50 transition-all min-w-0">
+                                <div className={`w-9 h-9 rounded-xl mb-2 flex items-center justify-center ${action.mColor}`}>
+                                    <Icon size={18} />
                                 </div>
-                                <h3 className="font-bold text-slate-900 text-base">{action.title}</h3>
-                                <p className="text-xs text-slate-500 font-medium">{action.desc}</p>
+                                <h3 className="font-bold text-slate-900 text-sm">{action.title}</h3>
+                                <p className="text-[10px] text-slate-500 font-medium">{action.desc}</p>
                             </Link>
                         )
                     })}

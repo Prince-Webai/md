@@ -440,7 +440,7 @@ const Customers = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div>
             <div className="hidden md:block space-y-6">
                 {selectedCustomer ? (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 overflow-hidden">
@@ -878,7 +878,7 @@ const Customers = () => {
                                 <div className="w-10 h-10 rounded-full bg-[#E6F9F3] text-[#14A637] flex items-center justify-center">
                                     <FileText size={20} />
                                 </div>
-                                <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">Invoice</span>
+                                <span className="text-[11px] font-bold text-slate-700 tracking-wide uppercase">Report</span>
                             </div>
                         </div>
 
@@ -950,24 +950,27 @@ const Customers = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Page Title & Add Button - Adjusted for global header visibility */}
-                        <div className="px-5 pt-6 pb-2 flex justify-between items-center">
-                            <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Customers</h1>
-                            <button
-                                onClick={() => {
-                                    setEditingId(null);
-                                    setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '' });
-                                    setIsModalOpen(true);
-                                }}
-                                className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
-                            >
-                                <Plus size={20} />
-                            </button>
+                        {/* Green Hero Header */}
+                        <div className="bg-[#0A8043] text-white pt-6 pb-16 px-5 relative w-full">
+                            <p className="text-white/60 text-[10px] font-bold mb-1 uppercase tracking-widest">Client Direct</p>
+                            <div className="flex justify-between items-start">
+                                <h1 className="text-2xl font-black tracking-tight">Customers</h1>
+                                <button
+                                    onClick={() => {
+                                        setEditingId(null);
+                                        setNewCustomer({ name: '', address: '', contact_person: '', email: '', phone: '' });
+                                        setIsModalOpen(true);
+                                    }}
+                                    className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-lg active:scale-95 transition-all"
+                                >
+                                    <Plus size={20} />
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Search Bar - Integrated into flow */}
-                        <div className="px-5 mb-4 mt-2">
-                            <div className="bg-white rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-sm">
+                        {/* Overlapping Search Bar */}
+                        <div className="px-5 -mt-8 relative z-20 mb-4">
+                            <div className="bg-white rounded-2xl flex items-center px-4 py-3.5 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
                                 <Search size={18} className="text-slate-400 mr-3 shrink-0" />
                                 <input
                                     type="text"

@@ -70,10 +70,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const closeSidebar = () => setIsSidebarOpen(false);
 
     return (
-        <div className="min-h-screen bg-[#F8FAFB] font-sans text-[#1a1a1a]">
+        <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#F8FAFB] font-sans text-[#1a1a1a] relative">
             {/* Header - Hidden on mobile, visible on desktop */}
-            <header className="hidden md:block sticky top-0 z-[1000] bg-white shadow-sm h-[110px] transition-colors">
-                <div className="max-w-[1600px] mx-auto h-full px-8 flex justify-between items-center">
+            <header className="hidden md:block sticky top-0 z-[1000] bg-white shadow-sm h-[110px] transition-colors w-full">
+                <div className="max-w-[1600px] w-full mx-auto h-full px-8 flex justify-between items-center">
 
                     {/* Logo Section */}
                     <div className="flex items-center h-full">
@@ -107,7 +107,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </header>
 
             {/* Main Container */}
-            <div className="max-w-[1600px] mx-auto min-h-screen md:p-4 lg:p-8 flex flex-col md:grid lg:grid-cols-[280px_1fr] gap-0 md:gap-8 bg-[#F8FAFB]">
+            <div className="max-w-[1600px] w-full mx-auto min-h-screen md:p-4 lg:p-8 flex flex-col md:grid lg:grid-cols-[280px_1fr] gap-0 md:gap-8 bg-[#F8FAFB]">
 
                 {/* Sidebar - Desktop & Mobile Drawer */}
                 <aside className={`
@@ -167,13 +167,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </div>
                 </aside>
 
-                <main className="min-w-0 flex-1 w-full pb-28 md:pb-0">
+                <main className="min-w-0 flex-1 w-full max-w-full pb-28 md:pb-0 overflow-x-hidden">
                     {children}
                 </main>
             </div>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex justify-around items-center px-1 pt-3 pb-8 z-[2000] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full max-w-full bg-white border-t border-slate-200 flex justify-around items-center px-1 pt-3 pb-8 z-[2000] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
                 {mobileNavItems.map((item) => {
                     const Icon = item.icon;
                     // Strict active checking for home, looser for others

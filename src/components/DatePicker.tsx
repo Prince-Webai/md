@@ -123,17 +123,17 @@ const DatePicker = ({ value, onChange, required, placeholder = 'Select date...' 
                 ref={triggerRef}
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`w-full flex items-center justify-between px-4 py-2.5 rounded-lg border transition-all text-left
+                className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border transition-all text-left
                     ${isOpen
                         ? 'border-[#0A8043] ring-2 ring-[#0A8043]/10 bg-white'
                         : 'border-slate-300 bg-white hover:border-slate-400'
                     }
                 `}
             >
-                <span className={value ? 'text-slate-900 font-medium text-sm' : 'text-slate-400 text-sm'}>
+                <span className={`min-w-0 truncate ${value ? 'text-slate-900 font-medium text-sm' : 'text-slate-400 text-sm'}`}>
                     {value ? formatDisplay(value) : placeholder}
                 </span>
-                <CalendarDays size={18} className={isOpen ? 'text-[#0A8043]' : 'text-slate-400'} />
+                <CalendarDays size={18} className={`shrink-0 ${isOpen ? 'text-[#0A8043]' : 'text-slate-400'}`} />
             </button>
 
             {/* Portal-rendered Dropdown — renders at document body, never clipped by modal overflow */}

@@ -197,7 +197,7 @@ const Inventory = () => {
 
 
     return (
-        <div className="space-y-6">
+        <div>
             <div className="hidden md:block space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
@@ -464,29 +464,32 @@ const Inventory = () => {
             </div>
 
             {/* MOBILE VIEW */}
-            <div className="block md:hidden pb-24 bg-[#F8FAFB] min-h-screen text-[#1a1a1a]">
-                {/* Page Title & Add Button - Adjusted for global header visibility */}
-                <div className="px-5 pt-6 pb-2 flex justify-between items-center">
-                    <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Parts</h1>
-                    {isAdmin && (
-                        <button
-                            onClick={() => {
-                                setEditingId(null);
-                                setNewItem({ sku: '', name: '', category: '', cost_price: 0, sell_price: 0, stock_level: 0, low_stock_threshold: 5, location: '' });
-                                setIsNewCategory(false);
-                                setNewCategoryName('');
-                                setIsModalOpen(true);
-                            }}
-                            className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
-                        >
-                            <Plus size={20} />
-                        </button>
-                    )}
+            <div className="block md:hidden pb-24 bg-[#F8FAFB] min-h-screen text-[#1a1a1a] w-full max-w-[100vw] overflow-x-hidden">
+                {/* Green Hero Header */}
+                <div className="bg-[#0A8043] text-white pt-6 pb-16 px-5 relative w-full">
+                    <p className="text-white/60 text-[10px] font-bold mb-1 uppercase tracking-widest text-center sm:text-left">Parts Catalog</p>
+                    <div className="flex justify-between items-start">
+                        <h1 className="text-2xl font-black tracking-tight">Inventory</h1>
+                        {isAdmin && (
+                            <button
+                                onClick={() => {
+                                    setEditingId(null);
+                                    setNewItem({ sku: '', name: '', category: '', cost_price: 0, sell_price: 0, stock_level: 0, low_stock_threshold: 5, location: '' });
+                                    setIsNewCategory(false);
+                                    setNewCategoryName('');
+                                    setIsModalOpen(true);
+                                }}
+                                className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-lg active:scale-95 transition-all"
+                            >
+                                <Plus size={20} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {/* Search Bar - Integrated into flow */}
-                <div className="px-5 mb-4 mt-2">
-                    <div className="bg-white rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-sm">
+                {/* Overlapping Search Bar */}
+                <div className="px-5 -mt-8 relative z-20 mb-4">
+                    <div className="bg-white rounded-2xl flex items-center px-4 py-3.5 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-[0_8px_30px_rgba(0,0,0,0.08)]">
                         <Search size={18} className="text-slate-400 mr-3 shrink-0" />
                         <input
                             type="text"
@@ -498,37 +501,44 @@ const Inventory = () => {
                     </div>
                 </div>
 
-                {/* Category Pills Scroll Area - Sticky below header */}
-                <div className="sticky top-[118px] z-10 bg-[#F8FAFB]/95 backdrop-blur-sm pt-4 pb-3 border-b border-slate-100/50">
-                    <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar px-5 items-center">
-                        <select
-                            className="bg-white border text-sm font-bold text-slate-700 outline-none border-slate-200 rounded-[1rem] px-3 py-2.5 shadow-sm min-w-[max-content]"
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value)}
-                        >
-                            <option value="all">Categories</option>
-                            {categories.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                        <button
-                            onClick={() => setCategoryFilter('all')}
-                            className={`px-5 py-2.5 rounded-[1rem] text-[13px] font-bold whitespace-nowrap shadow-sm transition-all active:scale-95 ${categoryFilter === 'all' || (!['all', 'low_stock', 'out_of_stock'].includes(categoryFilter) && categoryFilter) ? 'bg-slate-900 text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'}`}
-                        >
-                            All Parts
-                        </button>
-                        <button
-                            onClick={() => setCategoryFilter('low_stock')}
-                            className={`px-5 py-2.5 rounded-[1rem] text-[13px] font-bold whitespace-nowrap shadow-sm transition-all active:scale-95 ${categoryFilter === 'low_stock' ? 'bg-amber-500 text-white shadow-[0_4px_12px_rgba(245,158,11,0.2)]' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'}`}
-                        >
-                            Low Stock
-                        </button>
-                        <button
-                            onClick={() => setCategoryFilter('out_of_stock')}
-                            className={`px-5 py-2.5 rounded-[1rem] text-[13px] font-bold whitespace-nowrap shadow-sm transition-all active:scale-95 ${categoryFilter === 'out_of_stock' ? 'bg-red-500 text-white shadow-[0_4px_12px_rgba(239,68,68,0.2)]' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'}`}
-                        >
-                            Unavailable
-                        </button>
+                {/* Sticky Category Selection */}
+                <div className="sticky top-0 z-30 bg-white pt-4 pb-3 border-b border-slate-100 shadow-sm">
+                    <div className="flex gap-0 px-5 items-center w-full">
+                        {/* Fixed Category Selector Container */}
+                        <div className="shrink-0 bg-white pr-3 z-40">
+                            <select
+                                className="bg-slate-50 border text-sm font-bold text-slate-700 outline-none border-slate-200 rounded-xl px-3 py-2.5 shadow-sm appearance-none min-w-[110px]"
+                                value={categoryFilter}
+                                onChange={(e) => setCategoryFilter(e.target.value)}
+                            >
+                                <option value="all">Category</option>
+                                {categories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        {/* Independently Scrollable Pills Area */}
+                        <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar items-center flex-1 min-w-0">
+                            <button
+                                onClick={() => setCategoryFilter('all')}
+                                className={`px-5 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap shadow-sm transition-all active:scale-95 ${categoryFilter === 'all' || (!['all', 'low_stock', 'out_of_stock'].includes(categoryFilter) && categoryFilter) ? 'bg-slate-900 text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'}`}
+                            >
+                                All Parts
+                            </button>
+                            <button
+                                onClick={() => setCategoryFilter('low_stock')}
+                                className={`px-5 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap shadow-sm transition-all active:scale-95 ${categoryFilter === 'low_stock' ? 'bg-amber-500 text-white shadow-[0_4px_12px_rgba(245,158,11,0.2)]' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'}`}
+                            >
+                                Low Stock
+                            </button>
+                            <button
+                                onClick={() => setCategoryFilter('out_of_stock')}
+                                className={`px-5 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap shadow-sm transition-all active:scale-95 ${categoryFilter === 'out_of_stock' ? 'bg-red-500 text-white shadow-[0_4px_12px_rgba(239,68,68,0.2)]' : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'}`}
+                            >
+                                Unavailable
+                            </button>
+                        </div>
                     </div>
                 </div>
 

@@ -264,7 +264,7 @@ const Settings = () => {
 
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Account Manager Name</label>
-                                    <p className="text-xs text-slate-500 mb-2 ml-1">Shown as 'Account Manager' on invoices and PDFs.</p>
+                                    <p className="text-xs text-slate-500 mb-2 ml-1">Shown as 'Account Manager' on reports and PDFs.</p>
                                     <div className="relative">
                                         <Building size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input
@@ -396,7 +396,7 @@ const Settings = () => {
 
                                 <div>
                                     <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Webhook URL (Reminders)</label>
-                                    <p className="text-xs text-slate-500 mb-2 ml-1">Triggered when you send an invoice reminder.</p>
+                                    <p className="text-xs text-slate-500 mb-2 ml-1">Triggered when you send a report reminder.</p>
                                     <div className="relative">
                                         <Globe size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input

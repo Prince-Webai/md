@@ -377,18 +377,30 @@ export const dataService = {
         }
     },
 
-    async getAnalyticsData(days: number = 7): Promise<any> {
+    async getAnalyticsData(daysOrStartDate: number | string = 7, endDate?: string): Promise<any> {
         if (!isSupabaseConfigured()) return { jobs: [], items: [] };
 
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - days);
-        const startDateStr = startDate.toISOString();
+        let startDateStr: string;
+        if (typeof daysOrStartDate === 'string') {
+            startDateStr = daysOrStartDate;
+        } else {
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - (daysOrStartDate as number));
+            startDateStr = startDate.toISOString();
+        }
 
         try {
-            const [jobsRes, itemsRes] = await Promise.all([
-                supabase.from('jobs').select('*').gte('created_at', startDateStr),
-                supabase.from('job_items').select('*, inventory(name, sku)').gte('created_at', startDateStr)
-            ]);
+            let jobsQuery = supabase.from('jobs').select('*').gte('created_at', startDateStr);
+            let itemsQuery = supabase.from('job_items').select('*, inventory(name, sku)').gte('created_at', startDateStr);
+
+            if (endDate) {
+                // Ensure endDate includes the full day
+                const endDateTime = endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`;
+                jobsQuery = jobsQuery.lte('created_at', endDateTime);
+                itemsQuery = itemsQuery.lte('created_at', endDateTime);
+            }
+
+            const [jobsRes, itemsRes] = await Promise.all([jobsQuery, itemsQuery]);
 
             return {
                 jobs: jobsRes.data || [],
@@ -512,6 +524,34 @@ export const dataService = {
         } catch (error) {
             console.error('Error checking tag availability:', error);
             return true;
+        }
+    },
+
+    async getJobHistory(customerId: string, excludeJobId?: string): Promise<Job[]> {
+        if (!isSupabaseConfigured()) return [];
+        try {
+            let query = supabase
+                .from('jobs')
+                .select('*, customers(*)')
+                .eq('customer_id', customerId)
+                .order('created_at', { ascending: false });
+
+            if (excludeJobId) {
+                query = query.neq('id', excludeJobId);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+
+            return (data || []).map((job: any) => ({
+                ...job,
+                service_type: job.machine_details || job.service_type || '',
+                engineer_name: job.mechanic_id || job.engineer_name || '',
+                notes: job.problem_description || job.notes || ''
+            }));
+        } catch (error) {
+            console.error('Error fetching job history:', error);
+            return [];
         }
     }
 

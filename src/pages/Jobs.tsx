@@ -39,13 +39,31 @@ const Jobs = () => {
     const [inventory, setInventory] = useState<any[]>([]);
     const [newItem, setNewItem] = useState({ description: '', quantity: 1, unit_price: 0, type: 'part' as const });
     const [isAddingCustom, setIsAddingCustom] = useState(false);
-    const [pendingPart, setPendingPart] = useState<{ id: string; name: string; price: number; qty: number } | null>(null);
+    const [selectedPartId, setSelectedPartId] = useState('');
+    const [partQuantity, setPartQuantity] = useState(1);
 
     // Inline Customer Creation State
     const [isAddingNewCustomer, setIsAddingNewCustomer] = useState(false);
     const [newCustomerData, setNewCustomerData] = useState({ name: '', phone: '', email: '', address: '' });
 
     const [engineers, setEngineers] = useState<any[]>([]);
+
+    const addPartFromSelection = () => {
+        const invItem = inventory.find(i => i.id === selectedPartId);
+        if (invItem) {
+            setModalItems([...modalItems, {
+                description: invItem.name,
+                quantity: partQuantity,
+                unit_price: invItem.sell_price,
+                type: 'part',
+                inventory_id: invItem.id
+            }]);
+            setSelectedPartId('');
+            setPartQuantity(1);
+        } else {
+            showToast('Selection Required', 'Please select a part from inventory first', 'info');
+        }
+    };
 
     useEffect(() => {
         loadData();
@@ -263,7 +281,7 @@ const Jobs = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div>
             {/* DESKTOP VIEW */}
             <div className="hidden md:block space-y-6">
                 <div className="flex justify-between items-center">
@@ -408,65 +426,76 @@ const Jobs = () => {
             </div>
 
             {/* MOBILE VIEW */}
-            <div className="block md:hidden pb-24 bg-[#F8FAFB] min-h-screen text-[#1a1a1a]">
+            <div className="block md:hidden pb-24 bg-[#F8FAFB] min-h-screen text-[#1a1a1a] w-full max-w-[100vw] overflow-x-hidden">
 
-                {/* Page Title & Add Button - Adjusted for global header visibility */}
-                <div className="px-5 pt-6 pb-2 flex justify-between items-center">
-                    <h1 className="text-[28px] font-black text-slate-900 tracking-tight">Pipeline</h1>
-                    {isAdmin && (
-                        <button
-                            onClick={() => {
-                                setEditingId(null);
-                                setNewJob({
-                                    customer_id: '',
-                                    engineer_name: '',
-                                    service_type: '',
-                                    status: 'Booked In',
-                                    date_scheduled: new Date().toISOString().split('T')[0],
-                                    notes: ''
-                                });
-                                setModalItems([]);
-                                setIsModalOpen(true);
-                            }}
-                            className="w-10 h-10 bg-[#0A8043] hover:bg-[#065F30] rounded-full flex items-center justify-center text-white shadow-md active:scale-95 transition-all"
-                        >
-                            <Plus size={20} />
-                        </button>
-                    )}
-                </div>
+                <div className="sticky top-0 z-30">
+                    {/* Green Header Section */}
+                    <div className="bg-[#0A8043] text-white pt-6 pb-8 px-5 relative w-full shadow-lg">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <p className="text-white/60 text-[10px] font-bold mb-1 uppercase tracking-widest">Workshop Pipeline</p>
+                                <h1 className="text-2xl font-black tracking-tight">Jobs & Services</h1>
+                            </div>
+                            {isAdmin && (
+                                <button
+                                    onClick={() => {
+                                        setEditingId(null);
+                                        setNewJob({
+                                            customer_id: '',
+                                            engineer_name: '',
+                                            service_type: '',
+                                            status: 'Booked In',
+                                            date_scheduled: new Date().toISOString().split('T')[0],
+                                            notes: ''
+                                        });
+                                        setModalItems([]);
+                                        setIsModalOpen(true);
+                                    }}
+                                    className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 shadow-lg active:scale-95 transition-all"
+                                >
+                                    <Plus size={20} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
-                {/* Search Bar - Integrated into flow */}
-                <div className="px-5 mb-4 mt-2">
-                    <div className="bg-white rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-sm">
-                        <Search size={18} className="text-slate-400 mr-3 shrink-0" />
-                        <input
-                            type="text"
-                            placeholder="Search jobs, customers, engineers..."
-                            className="w-full bg-transparent border-none outline-none text-[15px] font-medium text-slate-900 placeholder-slate-400"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    {/* Search & Tabs Overlap Container */}
+                    <div className="bg-white pt-4 pb-0">
+
+                    {/* Search Bar */}
+                    <div className="px-5 mb-4 mt-2">
+                        <div className="bg-slate-50 rounded-2xl flex items-center px-4 py-3 border border-slate-200/60 focus-within:border-slate-300 transition-all shadow-sm">
+                            <Search size={18} className="text-slate-400 mr-3 shrink-0" />
+                            <input
+                                type="text"
+                                placeholder="Search jobs, customers, engineers..."
+                                className="w-full bg-transparent border-none outline-none text-[15px] font-medium text-slate-900 placeholder-slate-400"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Status Tabs Slider */}
+                    <div className="bg-white pb-3 border-b border-slate-200/60">
+                        <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar px-5">
+                            {['all', 'Booked In', 'In Progress', 'Waiting for Parts', 'Ready to Continue', 'Ready for Collection', 'Completed'].map((tab) => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab)}
+                                    className={`px-5 py-2.5 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all shadow-sm active:scale-95
+                                        ${activeTab === tab
+                                            ? 'bg-slate-900 text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]'
+                                            : 'bg-slate-50 text-slate-600 border border-slate-200 hover:border-slate-300'
+                                        }`}
+                                >
+                                    {tab === 'all' ? 'All' : tab.replace('_', ' ')} <span className="opacity-60 ml-1">({getTabCount(tab)})</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
-
-                {/* Status Tabs Slider - Sticky below global header */}
-                <div className="sticky top-[60px] z-10 bg-[#F8FAFB]/95 backdrop-blur-sm pt-4 pb-3 border-b border-slate-100/50">
-                    <div className="flex gap-2.5 overflow-x-auto pb-1 no-scrollbar px-5">
-                        {['all', 'Booked In', 'In Progress', 'Waiting for Parts', 'Ready to Continue', 'Ready for Collection', 'Completed'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`px-5 py-2.5 rounded-[1rem] text-[13px] font-bold whitespace-nowrap transition-all shadow-sm
-                                    ${activeTab === tab
-                                        ? 'bg-slate-900 text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)] active:scale-95'
-                                        : 'bg-white text-slate-600 border border-slate-200 hover:border-slate-300'
-                                    }`}
-                            >
-                                {tab === 'all' ? 'All' : tab.replace('_', ' ')} <span className="opacity-60 ml-1">({getTabCount(tab)})</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
+            </div>
 
                 {/* Job Cards List */}
                 <div className="px-5 space-y-3">
@@ -538,8 +567,20 @@ const Jobs = () => {
                     onClose={() => setIsModalOpen(false)}
                     title={editingId ? "Edit Job" : "Create New Job"}
                     size="wide"
+                    footer={
+                        <div className="flex justify-end gap-3">
+                            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
+                            <button
+                                type="submit"
+                                form="desktop-job-form"
+                                className="px-6 py-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white rounded-lg font-bold shadow-lg shadow-green-900/10"
+                            >
+                                {editingId ? 'Save Changes' : 'Create Job'}
+                            </button>
+                        </div>
+                    }
                 >
-                    <form onSubmit={handleAddJob} className="space-y-4 md:space-y-6">
+                    <form id="desktop-job-form" onSubmit={handleAddJob} className="space-y-3 md:space-y-4">
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="font-bold text-slate-900">Customer Details</h3>
@@ -595,7 +636,7 @@ const Jobs = () => {
                             )}
                         </div>
 
-                        <div className="bg-white p-4 rounded-xl border border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-xl border border-slate-100 grid grid-cols-2 gap-x-4 gap-y-6">
                             <div className="col-span-2">
                                 <h3 className="font-bold text-slate-900 mb-4">Job Details</h3>
                                 {availableTags.length <= 10 && availableTags.length > 0 && (
@@ -643,7 +684,7 @@ const Jobs = () => {
                                 </div>
                             </div>
 
-                            <div className="col-span-1">
+                            <div className="col-span-2 md:col-span-1">
                                 <SearchableSelect
                                     label="Assign Engineer"
                                     options={engineers.map(eng => ({ value: eng.name, label: eng.name }))}
@@ -653,7 +694,7 @@ const Jobs = () => {
                                 />
                             </div>
 
-                            <div className="col-span-1">
+                            <div className="col-span-2 md:col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
                                 <DatePicker
                                     required
@@ -662,7 +703,7 @@ const Jobs = () => {
                                 />
                             </div>
 
-                            <div className="col-span-1">
+                            <div className="col-span-2 md:col-span-1">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
                                 <DatePicker
                                     value={newJob.date_completed || ''}
@@ -670,7 +711,7 @@ const Jobs = () => {
                                 />
                             </div>
 
-                            <div className="col-span-1">
+                            <div className="col-span-2 md:col-span-1">
                                 <SearchableSelect
                                     label="Priority"
                                     searchable={false}
@@ -798,70 +839,47 @@ const Jobs = () => {
                                         </button>
                                     </div>
                                 </div>
-                            ) : pendingPart ? (
-                                // Qty confirmation row after selecting from inventory
-                                <div className="flex items-end gap-3 bg-green-50 border border-green-100 rounded-xl p-3">
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-[1fr_80px_auto] gap-3">
                                     <div className="flex-1">
-                                        <div className="text-xs font-bold text-slate-500 mb-1">Part</div>
-                                        <div className="text-sm font-bold text-slate-800">{pendingPart.name}</div>
-                                        <div className="text-xs text-slate-400">€{pendingPart.price} each</div>
+                                        <SearchableSelect
+                                            label=""
+                                            options={inventory.map(i => ({ value: i.id, label: `${i.name} (€${i.sell_price})` }))}
+                                            value={selectedPartId}
+                                            onChange={(id) => setSelectedPartId(id)}
+                                            placeholder="Search inventory parts..."
+                                            icon={<Package size={16} />}
+                                            className="h-[42px]"
+                                        />
                                     </div>
-                                    <div className="w-20">
-                                        <label className="block text-xs font-bold text-slate-500 mb-1">Qty</label>
+                                    <div className="w-full sm:w-20">
                                         <input
                                             type="number"
                                             min="1"
                                             step="1"
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-delaval-blue text-sm font-bold text-center"
-                                            value={pendingPart.qty}
-                                            onChange={e => setPendingPart({ ...pendingPart, qty: parseInt(e.target.value) || 1 })}
-                                            autoFocus
+                                            placeholder="Qty"
+                                            className="w-full h-[42px] px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-delaval-blue text-sm font-bold text-center bg-slate-50 focus:bg-white transition-colors"
+                                            value={partQuantity}
+                                            onChange={e => setPartQuantity(parseInt(e.target.value) || 1)}
                                         />
                                     </div>
                                     <div className="flex gap-2">
                                         <button
                                             type="button"
-                                            onClick={() => setPendingPart(null)}
-                                            className="h-[38px] px-3 text-sm font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-                                        >✕</button>
+                                            onClick={addPartFromSelection}
+                                            className="h-[42px] px-4 bg-delaval-blue text-white rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-sm"
+                                        >
+                                            Add
+                                        </button>
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                setModalItems([...modalItems, {
-                                                    description: pendingPart.name,
-                                                    quantity: pendingPart.qty,
-                                                    unit_price: pendingPart.price,
-                                                    type: 'part',
-                                                    inventory_id: pendingPart.id
-                                                }]);
-                                                setPendingPart(null);
-                                            }}
-                                            className="h-[38px] px-4 text-sm font-bold text-white bg-delaval-blue hover:bg-green-700 rounded-lg transition-colors"
-                                        >Add</button>
+                                            onClick={() => setIsAddingCustom(true)}
+                                            className="h-[42px] px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold transition-colors flex justify-center gap-2 items-center"
+                                            title="Add Labor or Custom Item"
+                                        >
+                                            <Plus size={16} /> Labor
+                                        </button>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-[1fr_auto] gap-3">
-                                    <SearchableSelect
-                                        label=""
-                                        options={inventory.map(i => ({ value: i.id, label: `${i.name} (€${i.sell_price})` }))}
-                                        value=""
-                                        onChange={(id) => {
-                                            const invItem = inventory.find(i => i.id === id);
-                                            if (invItem) {
-                                                setPendingPart({ id: invItem.id, name: invItem.name, price: invItem.sell_price, qty: 1 });
-                                            }
-                                        }}
-                                        placeholder="Search inventory parts..."
-                                        icon={<Package size={16} />}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsAddingCustom(true)}
-                                        className="h-[42px] px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-bold transition-colors flex justify-center gap-2 items-center"
-                                    >
-                                        <Plus size={16} /> Labor/Custom
-                                    </button>
                                 </div>
                             )}
                         </div>
@@ -876,13 +894,6 @@ const Jobs = () => {
                                 value={newJob.notes}
                                 onChange={e => setNewJob({ ...newJob, notes: e.target.value })}
                             />
-                        </div>
-
-                        <div className="pt-4 flex justify-end gap-3">
-                            <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium">Cancel</button>
-                            <button type="submit" className="px-6 py-2 bg-delaval-blue hover:bg-delaval-dark-blue text-white rounded-lg font-bold shadow-lg shadow-green-900/10">
-                                {editingId ? 'Save Changes' : 'Create Job'}
-                            </button>
                         </div>
                     </form>
                 </Modal>
@@ -1137,73 +1148,46 @@ const Jobs = () => {
                                                 </button>
                                             </div>
                                         </div>
-                                    ) : pendingPart ? (
-                                        // Mobile: qty confirmation step
-                                        <div className="space-y-3 bg-green-50 p-3 rounded-2xl border border-green-100">
-                                            <div>
-                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-0.5">Selected Part</div>
-                                                <div className="text-[15px] font-bold text-slate-900">{pendingPart.name}</div>
-                                                <div className="text-xs text-slate-400">€{pendingPart.price} each</div>
-                                            </div>
-                                            <div className="flex gap-3 items-end">
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div className="flex gap-3">
                                                 <div className="flex-1">
-                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Quantity</div>
+                                                    <select
+                                                        className="w-full text-slate-900 font-bold text-[15px] outline-none bg-transparent border-b border-slate-100 pb-2 appearance-none"
+                                                        value={selectedPartId}
+                                                        onChange={(e) => setSelectedPartId(e.target.value)}
+                                                    >
+                                                        <option value="">Select a part...</option>
+                                                        {inventory.map(i => <option key={i.id} value={i.id}>{i.name} (€{i.sell_price})</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="w-16">
                                                     <input
                                                         type="number"
-                                                        min="1"
-                                                        step="1"
-                                                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 text-[15px] font-bold outline-none"
-                                                        value={pendingPart.qty}
-                                                        onChange={e => setPendingPart({ ...pendingPart, qty: parseInt(e.target.value) || 1 })}
-                                                        autoFocus
+                                                        className="w-full text-slate-900 font-bold text-[15px] outline-none border-b border-slate-100 pb-2 text-center"
+                                                        value={partQuantity}
+                                                        onChange={e => setPartQuantity(parseInt(e.target.value) || 1)}
+                                                        placeholder="Qty"
                                                     />
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setPendingPart(null)}
-                                                    className="px-4 py-2.5 text-sm font-bold text-slate-500 bg-white border border-slate-200 rounded-xl"
-                                                >Cancel</button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setModalItems([...modalItems, {
-                                                            description: pendingPart.name,
-                                                            quantity: pendingPart.qty,
-                                                            unit_price: pendingPart.price,
-                                                            type: 'part',
-                                                            inventory_id: pendingPart.id
-                                                        }]);
-                                                        setPendingPart(null);
-                                                    }}
-                                                    className="px-4 py-2.5 text-sm font-bold text-white bg-[#0A8043] rounded-xl"
-                                                >Add</button>
                                             </div>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            <select
-                                                className="w-full text-slate-900 font-bold text-[15px] outline-none bg-transparent"
-                                                value=""
-                                                onChange={(e) => {
-                                                    const id = e.target.value;
-                                                    const invItem = inventory.find(i => i.id === id);
-                                                    if (invItem) {
-                                                        setPendingPart({ id: invItem.id, name: invItem.name, price: invItem.sell_price, qty: 1 });
-                                                    }
-                                                }}
-                                            >
-                                                <option value="">Select an inventory item...</option>
-                                                {inventory.map(i => <option key={i.id} value={i.id}>{i.name} (€{i.sell_price})</option>)}
-                                            </select>
 
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsAddingCustom(true)}
-                                                className="w-full py-3 bg-[#E6F4EA] text-[#0A8043] rounded-xl text-sm font-bold active:scale-[0.98] transition-transform flex justify-center gap-2 items-center"
-                                            >
-                                                <FileText size={16} />
-                                                Add Custom / Labor
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={addPartFromSelection}
+                                                    className="flex-1 py-3 bg-[#0A8043] text-white rounded-xl text-sm font-bold active:scale-[0.98] transition-transform flex justify-center gap-2 items-center"
+                                                >
+                                                    <Plus size={16} /> Add Part
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setIsAddingCustom(true)}
+                                                    className="px-4 py-3 bg-slate-50 text-slate-600 rounded-xl text-sm font-bold active:scale-[0.98] transition-transform flex justify-center gap-2 items-center border border-slate-100"
+                                                >
+                                                    <FileText size={16} /> Labor
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
