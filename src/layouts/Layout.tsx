@@ -173,7 +173,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             </div>
 
             {/* Mobile Bottom Navigation */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full max-w-full bg-white border-t border-slate-200 flex justify-around items-center px-1 pt-3 pb-5 z-[2000] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+            <nav 
+                className="md:hidden fixed bottom-0 left-0 right-0 w-full max-w-full bg-white border-t border-slate-200 flex justify-around items-center px-1 pt-3 z-[2000] shadow-[0_-4px_12px_rgba(0,0,0,0.05)]"
+                style={{ paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))' }}
+            >
                 {mobileNavItems.map((item) => {
                     const Icon = item.icon;
                     // Strict active checking for home, looser for others
