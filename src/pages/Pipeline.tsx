@@ -338,7 +338,7 @@ const Pipeline = () => {
                                 <div className="flex justify-between items-start mb-2">
                                   <div className="flex flex-col">
                                     <span className="text-xs font-bold text-slate-400 mb-1">
-                                      #{job.job_number.toString().padStart(4, "0")}
+                                      #{job.job_number?.toString().padStart(4, "0")}
                                     </span>
                                     {job.priority && job.priority !== 'Normal' && (
                                       <span className={`inline-flex w-fit px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${job.priority === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'

@@ -59,6 +59,7 @@ export interface Job {
     mechanic_sign_off_name?: string;
     job_sheet_pdf_url?: string;
     completion_report_pdf_url?: string;
+    job_number?: number | string;
 
     // Joins
     customers?: Customer;

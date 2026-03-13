@@ -338,7 +338,7 @@ const Dashboard = () => {
                                             <div className="flex items-center gap-3">
                                                 <div className="flex flex-col">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="font-bold text-slate-900">#{job.job_number}</div>
+                                                        <div className="font-bold text-slate-900">#{job.job_number || '---'}</div>
                                                         {job.priority && job.priority !== 'Normal' && (
                                                             <span className={`px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider ${job.priority === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                                                                 }`}>
@@ -458,7 +458,7 @@ const Dashboard = () => {
                                 <div className="flex justify-between items-start mb-2">
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <div className="text-[10px] font-bold text-slate-400 tracking-wider">#{job.job_number}</div>
+                                            <div className="text-[10px] font-bold text-slate-400 tracking-wider">#{job.job_number || '---'}</div>
                                             {job.priority && job.priority !== 'Normal' && (
                                                 <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${job.priority === 'Urgent' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                                                     }`}>

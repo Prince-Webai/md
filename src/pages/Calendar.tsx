@@ -182,7 +182,7 @@ const CalendarPage = () => {
                                 <Link to={`/jobs/${job.id}`} key={job.id} className="block">
                                     <div className={`p-4 rounded-xl border ${statusConfig[job.status]?.bg || 'bg-white border-slate-200'} transition-all active:scale-[0.98]`}>
                                         <div className="flex items-center justify-between mb-2">
-                                            <span className="font-bold text-slate-900 text-sm">#{job.job_number}</span>
+                                            <span className="font-bold text-slate-900 text-sm">#{job.job_number || '---'}</span>
                                             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${statusConfig[job.status]?.dot} text-white`}>
                                                 {statusConfig[job.status]?.label}
                                             </span>
@@ -215,7 +215,7 @@ const CalendarPage = () => {
                                         <div className="flex items-center justify-between mb-1.5">
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-2 h-2 rounded-full ${statusConfig[job.status]?.dot}`} />
-                                                <span className="font-bold text-sm text-slate-900">#{job.job_number}</span>
+                                                <span className="font-bold text-sm text-slate-900">#{job.job_number || '---'}</span>
                                             </div>
                                             <span className="text-xs font-semibold text-delaval-blue bg-green-50 px-2 py-0.5 rounded-full">
                                                 {job.date_scheduled ? formatDateLabel(job.date_scheduled) : 'No date'}
@@ -429,7 +429,7 @@ const CalendarPage = () => {
                                         <Link to={`/jobs/${job.id}`} key={job.id} className="block">
                                             <div className="p-3 rounded-lg border border-slate-100 hover:border-delaval-blue/30 hover:shadow-sm transition-all group">
                                                 <div className="flex items-center justify-between mb-1">
-                                                    <span className="font-bold text-sm text-slate-900 group-hover:text-delaval-blue transition-colors">#{job.job_number}</span>
+                                                    <span className="font-bold text-sm text-slate-900 group-hover:text-delaval-blue transition-colors">#{job.job_number || '---'}</span>
                                                     <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${statusConfig[job.status]?.dot} text-white`}>
                                                         {statusConfig[job.status]?.label}
                                                     </span>
