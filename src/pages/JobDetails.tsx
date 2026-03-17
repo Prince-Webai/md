@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle, Download, Printer, UserCheck, FileCheck, AlertCircle, AlertTriangle } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -36,7 +36,10 @@ const JobDetails = () => {
     const [timeLeft, setTimeLeft] = useState<string>('');
     const [settings, setSettings] = useState<Settings | null>(null);
     const [history, setHistory] = useState<Job[]>([]);
-    const [activeTab, setActiveTab] = useState<'items' | 'history'>('items');
+    const [activeTab, setActiveTab] = useState<'items' | 'history' | 'labor'>('items');
+    const [mobileTab, setMobileTab] = useState<'details' | 'parts' | 'labor' | 'history'>('details');
+    const [engineers, setEngineers] = useState<any[]>([]);
+    const [labourLogs, setLabourLogs] = useState<any[]>([]);
 
     // Refresh timer logic when job updates
     useEffect(() => {
@@ -84,6 +87,13 @@ const JobDetails = () => {
 
     const handleStartTimer = async () => {
         if (!job) return;
+
+        // Ensure a mechanic is assigned before starting
+        if (!job.engineer_name) {
+            showToast('Action Required', 'Please assign a mechanic/engineer before starting the timer.', 'error');
+            return;
+        }
+
         const now = new Date().toISOString();
         const updates: any = { timer_status: 'running', timer_started_at: now };
 
@@ -105,18 +115,25 @@ const JobDetails = () => {
         const hoursThisSession = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
         const newTotalHours = (job.total_hours_worked || 0) + hoursThisSession;
 
-        // Auto-log to labour_logs
+        // Auto-log to labour_logs using assigned engineer
         await supabase.from('labour_logs').insert([{
             job_id: job.id,
-            mechanic_id: 'auto_timer',
+            mechanic_id: job.engineer_name || 'Unassigned',
             start_time: job.timer_started_at,
             end_time: end.toISOString(),
             duration_minutes: Math.round(hoursThisSession * 60)
         }]);
 
-        await supabase.from('jobs').update({ timer_status: 'paused', timer_started_at: null, total_hours_worked: newTotalHours }).eq('id', job.id);
+        await supabase.from('jobs').update({ 
+            timer_status: 'paused', 
+            timer_started_at: null, 
+            total_hours_worked: newTotalHours 
+        }).eq('id', job.id);
 
         setJob({ ...job, timer_status: 'paused', timer_started_at: undefined, total_hours_worked: newTotalHours });
+        
+        // Refresh items to see if labor should be updated (optional, usually on completion)
+        fetchJobItems();
     };
 
     const handleCompleteJob = async () => {
@@ -124,11 +141,36 @@ const JobDetails = () => {
         if (timerStatus === 'running') {
             await handlePauseTimer();
         }
+        
+        // Finalize labor (rounding up to next full hour)
+        const totalRawHours = job.total_hours_worked || 0;
+        const roundedHours = Math.ceil(totalRawHours) || 1; // Minimum 1 hour if any work done
+        const laborRate = 50;
+        
+        // Create/Update labor item
+        const existingLabor = items.find(i => i.type === 'labor');
+        if (existingLabor) {
+            await supabase.from('job_items').update({
+                quantity: roundedHours,
+                unit_price: laborRate,
+                total: roundedHours * laborRate
+            }).eq('id', existingLabor.id);
+        } else if (totalRawHours > 0) {
+            await dataService.addJobItem({
+                job_id: job.id,
+                description: `Labour (${roundedHours} hrs rounded from ${totalRawHours.toFixed(2)})`,
+                quantity: roundedHours,
+                unit_price: laborRate,
+                type: 'labor'
+            });
+        }
+
         const now = new Date().toISOString();
         const { error } = await supabase.from('jobs').update({
             status: 'Completed',
             timer_status: 'stopped',
-            actual_end_time: now
+            actual_end_time: now,
+            total_hours_worked: totalRawHours // Keep raw hours for record, billable is in items
         }).eq('id', job.id);
 
         if (!error) {
@@ -138,6 +180,7 @@ const JobDetails = () => {
                 timer_status: 'stopped',
                 actual_end_time: now
             } : null);
+            fetchJobItems(); // Refresh for labor item
         }
     };
 
@@ -170,8 +213,25 @@ const JobDetails = () => {
             fetchJobItems();
             fetchInventory();
             loadSettings();
+            fetchEngineers();
+            fetchLabourLogs();
         }
     }, [id]);
+
+    const fetchEngineers = async () => {
+        const data = await dataService.getEngineers();
+        setEngineers(data);
+    };
+
+    const fetchLabourLogs = async () => {
+        if (!id) return;
+        const { data, error } = await supabase
+            .from('labour_logs')
+            .select('*')
+            .eq('job_id', id)
+            .order('created_at', { ascending: false });
+        if (!error) setLabourLogs(data || []);
+    };
 
     const loadSettings = async () => {
         const s = await dataService.getSettings();
@@ -658,8 +718,6 @@ const JobDetails = () => {
     };
 
 
-    const [mobileTab, setMobileTab] = useState<'details' | 'parts' | 'labor' | 'history'>('details');
-
     if (!job) return <div className="p-8">Loading...</div>;
 
     const partsItems = items.filter(i => i.type === 'part');
@@ -668,7 +726,7 @@ const JobDetails = () => {
     const totalLaborCost = laborItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
     return (
-        <>
+        <Fragment>
             {/* Desktop View */}
             <div className="hidden md:block space-y-6">
                 <div className="flex items-center gap-4">
@@ -706,12 +764,18 @@ const JobDetails = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
                         <div className="section-card">
-                            <div className="flex border-b border-slate-100 px-6">
+                            <div className="flex border-b border-slate-100 px-6 overflow-x-auto whitespace-nowrap scrollbar-hide">
                                 <button
                                     onClick={() => setActiveTab('items')}
                                     className={`py-4 text-sm font-bold border-b-2 transition-colors mr-8 ${activeTab === 'items' ? 'border-delaval-blue text-delaval-blue' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                                 >
                                     Service Items
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('labor')}
+                                    className={`py-4 text-sm font-bold border-b-2 transition-colors mr-8 ${activeTab === 'labor' ? 'border-delaval-blue text-delaval-blue' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                                >
+                                    Labour Logs
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('history')}
@@ -720,186 +784,226 @@ const JobDetails = () => {
                                     Job History ({history.length})
                                 </button>
                             </div>
+                            {/* Tab Content */}
+                            <div className="p-6">
+                                {activeTab === 'items' && (
+                                    <div className="space-y-6">
+                                        <h2 className="text-lg font-bold">Service Items</h2>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-slate-50">
+                                                    <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                                        <th className="px-4 py-3">Description</th>
+                                                        <th className="px-4 py-3">Qty</th>
+                                                        <th className="px-4 py-3">Status</th>
+                                                        <th className="px-4 py-3">Cost (€)</th>
+                                                        <th className="px-4 py-3">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {items.map(item => (
+                                                        <tr key={item.id} className="border-t border-slate-100">
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-medium text-slate-900">{item.description}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-slate-600">{item.quantity}</td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${item.status === 'Park Mode' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
+                                                                    item.status === 'Used' ? 'bg-green-50 text-green-600 border border-green-100' :
+                                                                        item.status === 'Returned' ? 'bg-slate-50 text-slate-500 border border-slate-100' :
+                                                                            'bg-slate-50 text-slate-500'
+                                                                    }`}>
+                                                                    {item.status || (item.type === 'labor' ? 'Logged' : 'Used')}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 font-medium">€{item.unit_price}</td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    {item.status === 'Park Mode' && job.status !== 'Completed' && (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={() => handleResolveItem(item.id, 'Used')}
+                                                                                className="px-2 py-1 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition-colors uppercase"
+                                                                            >
+                                                                                Use
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => handleResolveItem(item.id, 'Returned')}
+                                                                                className="px-2 py-1 bg-slate-200 text-slate-700 text-[10px] font-bold rounded hover:bg-slate-300 transition-colors uppercase"
+                                                                            >
+                                                                                Return
+                                                                            </button>
+                                                                        </>
+                                                                    )}
+                                                                    {job.status !== 'Completed' && (
+                                                                        <button
+                                                                            onClick={() => handleDeleteItem(item.id)}
+                                                                            className="text-slate-300 hover:text-red-500 p-1.5 rounded transition-colors"
+                                                                        >
+                                                                            <Trash2 size={16} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
 
-                            {activeTab === 'items' ? (
-                                <div className="p-6">
-                                    <h2 className="text-lg font-bold mb-4">Service Items</h2>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead className="bg-slate-50">
-                                        <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                            <th className="px-4 py-3">Description</th>
-                                            <th className="px-4 py-3">Qty</th>
-                                            <th className="px-4 py-3">Status</th>
-                                            <th className="px-4 py-3">Cost (€)</th>
-                                            <th className="px-4 py-3">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {items.map(item => (
-                                            <tr key={item.id} className="border-t border-slate-100">
-                                                <td className="px-4 py-3">
-                                                    <div className="font-medium text-slate-900">{item.description}</div>
-                                                </td>
-                                                <td className="px-4 py-3 text-slate-600">{item.quantity}</td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${item.status === 'Park Mode' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                                                        item.status === 'Used' ? 'bg-green-50 text-green-600 border border-green-100' :
-                                                            item.status === 'Returned' ? 'bg-slate-50 text-slate-500 border border-slate-100' :
-                                                                'bg-slate-50 text-slate-500'
-                                                        }`}>
-                                                        {item.status || (item.type === 'labor' ? 'Logged' : 'Used')}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 font-medium">€{item.unit_price}</td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center gap-2">
-                                                        {item.status === 'Park Mode' && job.status !== 'Completed' && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => handleResolveItem(item.id, 'Used')}
-                                                                    className="px-2 py-1 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition-colors uppercase"
-                                                                >
-                                                                    Use
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleResolveItem(item.id, 'Returned')}
-                                                                    className="px-2 py-1 bg-slate-200 text-slate-700 text-[10px] font-bold rounded hover:bg-slate-300 transition-colors uppercase"
-                                                                >
-                                                                    Return
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                        {job.status !== 'Completed' && (
-                                                            <button
-                                                                onClick={() => handleDeleteItem(item.id)}
-                                                                className="text-slate-300 hover:text-red-500 p-1.5 rounded transition-colors"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        )}
+                                        {job.status !== 'Completed' && (
+                                            <div className="mt-4 bg-slate-50 p-4 rounded-lg space-y-3">
+                                                <div className="flex gap-4">
+                                                    <div className="flex-1">
+                                                        <SearchableSelect
+                                                            label="Add Code / Product"
+                                                            options={inventory.map(inv => ({ value: inv.id, label: `${inv.name} (€${inv.sell_price})` }))}
+                                                            value=""
+                                                            onChange={(val) => {
+                                                                const item = inventory.find(i => i.id === val);
+                                                                if (item) {
+                                                                    setNewItem({
+                                                                        ...newItem,
+                                                                        description: item.name,
+                                                                        unit_price: item.sell_price,
+                                                                        type: 'part'
+                                                                    });
+                                                                }
+                                                            }}
+                                                            placeholder="Select generic product..."
+                                                            icon={<Package size={16} />}
+                                                        />
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {job.status !== 'Completed' && (
-                                <div className="mt-4 bg-slate-50 p-4 rounded-lg space-y-3">
-                                    <div className="flex gap-4">
-                                        <div className="flex-1">
-                                            <SearchableSelect
-                                                label="Add Code / Product"
-                                                options={inventory.map(inv => ({ value: inv.id, label: `${inv.name} (€${inv.sell_price})` }))}
-                                                value=""
-                                                onChange={(val) => {
-                                                    const item = inventory.find(i => i.id === val);
-                                                    if (item) {
-                                                        setNewItem({
-                                                            ...newItem,
-                                                            description: item.name,
-                                                            unit_price: item.sell_price,
-                                                            type: 'part'
-                                                        });
-                                                    }
-                                                }}
-                                                placeholder="Select generic product..."
-                                                icon={<Package size={16} />}
-                                            />
-                                        </div>
-                                        <div className="w-1/3">
-                                            <SearchableSelect
-                                                label="Type"
-                                                searchable={false}
-                                                options={[
-                                                    { value: 'part', label: 'Part' },
-                                                    { value: 'labor', label: 'Labor' },
-                                                    { value: 'service', label: 'Service' }
-                                                ]}
-                                                value={newItem.type}
-                                                onChange={(val) => setNewItem({ ...newItem, type: val as any })}
-                                                icon={<Clock size={16} />}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-2 items-end">
-                                        <div className="flex-1">
-                                            <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Description</label>
-                                            <input
-                                                className="w-full p-2 border rounded"
-                                                placeholder="Item description or service details..."
-                                                value={newItem.description}
-                                                onChange={e => setNewItem({ ...newItem, description: e.target.value })}
-                                            />
-                                        </div>
-                                        <div className="w-20">
-                                            <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Qty</label>
-                                            <input
-                                                type="number"
-                                                className="w-full p-2 border rounded"
-                                                value={newItem.quantity}
-                                                onChange={e => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
-                                            />
-                                        </div>
-                                        <div className="w-24">
-                                            <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Cost (€)</label>
-                                            <input
-                                                type="number"
-                                                className="w-full p-2 border rounded"
-                                                value={newItem.unit_price}
-                                                onChange={e => setNewItem({ ...newItem, unit_price: Number(e.target.value) })}
-                                            />
-                                        </div>
-                                        <button onClick={handleAddItem} className="bg-delaval-blue text-white p-2.5 rounded hover:bg-delaval-dark-blue">
-                                            <Plus size={20} />
-                                        </button>
-                                    </div>
-                                    </div>
-                                )}
-                                </div>
-                            ) : (
-                                <div className="p-6">
-                                    <h2 className="text-lg font-bold mb-4">Job History</h2>
-                                    {history.length === 0 ? (
-                                        <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                            <Clock size={48} className="mx-auto text-slate-300 mb-4" />
-                                            <p className="text-slate-500 font-medium">No previous service history for this customer.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {history.map(h => (
-                                                <div 
-                                                    key={h.id} 
-                                                    className="p-4 bg-white border border-slate-100 rounded-xl hover:border-delaval-blue transition-all cursor-pointer group shadow-sm hover:shadow-md"
-                                                    onClick={() => navigate(`/jobs/${h.id}`)}
-                                                >
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
-                                                                #{h.tag_number || 'N/A'}
-                                                            </div>
-                                                            <span className="font-bold text-slate-900">{new Date(h.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                        </div>
-                                                        <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                                                            h.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
-                                                        }`}>
-                                                            {h.status}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-slate-600 line-clamp-2">{h.notes || 'No description provided.'}</p>
-                                                    <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                                                        <span>Engineer: {h.engineer_name || 'Unassigned'}</span>
-                                                        <span className="text-delaval-blue group-hover:underline">View Details →</span>
+                                                    <div className="w-1/3">
+                                                        <SearchableSelect
+                                                            label="Type"
+                                                            searchable={false}
+                                                            options={[
+                                                                { value: 'part', label: 'Part' },
+                                                                { value: 'labor', label: 'Labor' },
+                                                                { value: 'service', label: 'Service' }
+                                                            ]}
+                                                            value={newItem.type}
+                                                            onChange={(val) => setNewItem({ ...newItem, type: val as any })}
+                                                            icon={<Clock size={16} />}
+                                                        />
                                                     </div>
                                                 </div>
-                                            ))}
+
+                                                <div className="flex gap-2 items-end">
+                                                    <div className="flex-1">
+                                                        <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Description</label>
+                                                        <input
+                                                            className="w-full p-2 border rounded"
+                                                            placeholder="Item description or service details..."
+                                                            value={newItem.description}
+                                                            onChange={e => setNewItem({ ...newItem, description: e.target.value })}
+                                                        />
+                                                    </div>
+                                                    <div className="w-20">
+                                                        <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Qty</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full p-2 border rounded"
+                                                            value={newItem.quantity}
+                                                            onChange={e => setNewItem({ ...newItem, quantity: Number(e.target.value) })}
+                                                        />
+                                                    </div>
+                                                    <div className="w-24">
+                                                        <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Cost (€)</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full p-2 border rounded"
+                                                            value={newItem.unit_price}
+                                                            onChange={e => setNewItem({ ...newItem, unit_price: Number(e.target.value) })}
+                                                        />
+                                                    </div>
+                                                    <button onClick={handleAddItem} className="bg-delaval-blue text-white p-2.5 rounded hover:bg-delaval-dark-blue">
+                                                        <Plus size={20} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'history' && (
+                                    <div className="space-y-4">
+                                        <h2 className="text-lg font-bold">Job History</h2>
+                                        {history.length === 0 ? (
+                                            <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                                <Clock size={48} className="mx-auto text-slate-300 mb-4" />
+                                                <p className="text-slate-500 font-medium">No previous service history for this customer.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {history.map(h => (
+                                                    <div 
+                                                        key={h.id} 
+                                                        className="p-4 bg-white border border-slate-100 rounded-xl hover:border-delaval-blue transition-all cursor-pointer group shadow-sm hover:shadow-md"
+                                                        onClick={() => navigate(`/jobs/${h.id}`)}
+                                                    >
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs">
+                                                                    #{h.tag_number || 'N/A'}
+                                                                </div>
+                                                                <span className="font-bold text-slate-900">{new Date(h.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                            </div>
+                                                            <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
+                                                                h.status === 'Completed' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
+                                                            }`}>
+                                                                {h.status}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-slate-600 line-clamp-2">{h.notes || 'No description provided.'}</p>
+                                                        <div className="mt-3 flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                                            <span>Engineer: {h.engineer_name || 'Unassigned'}</span>
+                                                            <span className="text-delaval-blue group-hover:underline">View Details →</span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {activeTab === 'labor' && (
+                                    <div className="space-y-6">
+                                        <h2 className="text-lg font-bold">Labour Logs</h2>
+                                        <div className="space-y-4">
+                                            {labourLogs.length === 0 ? (
+                                                <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                                    <Clock size={48} className="mx-auto text-slate-300 mb-4" />
+                                                    <p className="text-slate-500 font-medium">No labour has been logged for this job yet.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left">
+                                                        <thead className="bg-slate-50">
+                                                            <tr className="text-left text-xs font-bold text-slate-500 uppercase tracking-widest">
+                                                                <th className="px-4 py-3">Mechanic</th>
+                                                                <th className="px-4 py-3">Start Time</th>
+                                                                <th className="px-4 py-3">End Time</th>
+                                                                <th className="px-4 py-3 text-right">Duration</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {labourLogs.map(log => (
+                                                                <tr key={log.id} className="border-t border-slate-100">
+                                                                    <td className="px-4 py-3 font-medium text-slate-900">{log.mechanic_id}</td>
+                                                                    <td className="px-4 py-3 text-slate-600 text-sm">{new Date(log.start_time).toLocaleString()}</td>
+                                                                    <td className="px-4 py-3 text-slate-600 text-sm">{log.end_time ? new Date(log.end_time).toLocaleString() : 'Running...'}</td>
+                                                                    <td className="px-4 py-3 text-right font-bold text-delaval-blue">{log.duration_minutes}m</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            )}
+                                    </div>
+                                )}
                         </div>
                     </div>
 
@@ -1022,75 +1126,125 @@ const JobDetails = () => {
                                             <CheckCircle size={18} /> Completed
                                         </div>
                                     ) : (
-                                        <SearchableSelect
-                                            label=""
-                                            searchable={false}
-                                            options={[
-                                                { value: 'Booked In', label: 'Booked In' },
-                                                { value: 'In Progress', label: 'In Progress' },
-                                                { value: 'Waiting for Parts', label: 'Waiting for Parts' },
-                                                { value: 'Ready to Continue', label: 'Ready to Continue' },
-                                                { value: 'Ready for Collection', label: 'Ready for Collection' },
-                                                { value: 'Completed', label: 'Completed' },
-                                                { value: 'Closed', label: 'Closed' }
-                                            ]}
-                                            value={job.status}
-                                            onChange={async (newStatus) => {
-                                                const { error } = await supabase
-                                                    .from('jobs')
-                                                    .update({ status: newStatus })
-                                                    .eq('id', job.id);
+                                        <Fragment>
+                                            <SearchableSelect
+                                                label=""
+                                                searchable={false}
+                                                options={[
+                                                    { value: 'Booked In', label: 'Booked In' },
+                                                    { value: 'In Progress', label: 'In Progress' },
+                                                    { value: 'Waiting for Parts', label: 'Waiting for Parts' },
+                                                    { value: 'Ready to Continue', label: 'Ready to Continue' },
+                                                    { value: 'Ready for Collection', label: 'Ready for Collection' },
+                                                    { value: 'Completed', label: 'Completed' },
+                                                    { value: 'Closed', label: 'Closed' }
+                                                ]}
+                                                value={job.status}
+                                                onChange={async (newStatus) => {
+                                                    const { error } = await supabase
+                                                        .from('jobs')
+                                                        .update({ status: newStatus })
+                                                        .eq('id', job.id);
 
-                                                if (!error) {
-                                                    setJob({ ...job, status: newStatus as any });
-                                                }
-                                            }}
-                                            icon={<Wrench size={16} />}
-                                        />
+                                                    if (!error) {
+                                                        setJob({ ...job, status: newStatus as any });
+                                                    }
+                                                }}
+                                                icon={<Wrench size={16} />}
+                                            />
+                                            <div className="space-y-4 pt-4 border-t border-slate-100 mt-4">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-500 mb-1">Whole Good Number</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-delaval-blue transition-all"
+                                                            placeholder="Permanent Machine ID..."
+                                                            value={job.whole_good_number || ''}
+                                                            onChange={(e) => setJob({ ...job, whole_good_number: e.target.value })}
+                                                            onBlur={async () => {
+                                                                await supabase.from('jobs').update({ whole_good_number: job.whole_good_number }).eq('id', job.id);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-slate-500 mb-1">PO / IO Number</label>
+                                                        <input
+                                                            type="text"
+                                                            className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:border-delaval-blue transition-all"
+                                                            placeholder="Purchase Order Reference..."
+                                                            value={job.po_number || ''}
+                                                            onChange={(e) => setJob({ ...job, po_number: e.target.value })}
+                                                            onBlur={async () => {
+                                                                await supabase.from('jobs').update({ po_number: job.po_number }).eq('id', job.id);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-500 mb-2">Engineer</label>
+                                                    <SearchableSelect
+                                                        label=""
+                                                        options={engineers.map(e => ({ value: e.name, label: e.name }))}
+                                                        value={job.engineer_name || ''}
+                                                        onChange={async (val) => {
+                                                            const { error } = await supabase.from('jobs').update({ engineer_name: val }).eq('id', job.id);
+                                                            if (!error) {
+                                                                setJob({ ...job, engineer_name: val });
+                                                                showToast('Updated', `Mechanic changed to ${val}`, 'success');
+                                                            }
+                                                        }}
+                                                        placeholder="Select Mechanic..."
+                                                        icon={<UserCheck size={16} />}
+                                                    />
+                                                </div>
+                                                <div className="text-[11px] text-slate-400 italic bg-amber-50 p-2 rounded border border-amber-100 flex items-center gap-2">
+                                                    <AlertCircle size={12} className="text-amber-500" />
+                                                    Note: Changing mechanic will log future time sessions to the new mechanic.
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-500">Scheduled Date</label>
+                                                    <div className="text-slate-900">{job.date_scheduled ? new Date(job.date_scheduled).toLocaleDateString() : 'Unscheduled'}</div>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-500">Job Description</label>
+                                                    <div className="text-slate-900 bg-white border border-slate-200 p-3 rounded-lg mt-1 text-sm shadow-inner">{job.notes || 'No description provided.'}</div>
+                                                </div>
+                                            </div>
+                                        </Fragment>
                                     )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-500">Engineer</label>
-                                    <div className="text-slate-900">{job.engineer_name || 'Unassigned'}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-500">Scheduled Date</label>
-                                    <div className="text-slate-900">{job.date_scheduled ? new Date(job.date_scheduled).toLocaleDateString() : 'Unscheduled'}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-500">Job Description</label>
-                                    <div className="text-slate-900 bg-slate-50 p-3 rounded-lg mt-1 text-sm">{job.notes || 'No description provided.'}</div>
                                 </div>
 
                                 {/* PDF Links */}
-                                {(job.job_sheet_pdf_url || job.completion_report_pdf_url) && (
-                                    <div className="pt-4 border-t border-slate-100 space-y-2">
-                                        <div className="text-[11px] font-bold text-slate-400 tracking-wider">TAG #{job.tag_number || 'N/A'}</div>
-                                        <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Generated Documents</h3>
-                                        {job.job_sheet_pdf_url && (
-                                            <a href={job.job_sheet_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors group">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
-                                                        <FileText size={16} />
+                                    {(job.job_sheet_pdf_url || job.completion_report_pdf_url) && (
+                                        <div className="pt-4 border-t border-slate-100 space-y-2">
+                                            <div className="text-[11px] font-bold text-slate-400 tracking-wider">TAG #{job.tag_number || 'N/A'}</div>
+                                            <h3 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Generated Documents</h3>
+                                            {job.job_sheet_pdf_url && (
+                                                <a href={job.job_sheet_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors group">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
+                                                            <FileText size={16} />
+                                                        </div>
+                                                        <span className="text-sm font-medium text-slate-700">Job Worksheet</span>
                                                     </div>
-                                                    <span className="text-sm font-medium text-slate-700">Job Worksheet</span>
-                                                </div>
-                                                <Download size={16} className="text-slate-400 group-hover:text-delaval-blue" />
-                                            </a>
-                                        )}
-                                        {job.completion_report_pdf_url && (
-                                            <a href={job.completion_report_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors group">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
-                                                        <FileCheck size={16} />
+                                                    <Download size={16} className="text-slate-400 group-hover:text-delaval-blue" />
+                                                </a>
+                                            )}
+                                            {job.completion_report_pdf_url && (
+                                                <a href={job.completion_report_pdf_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100 transition-colors group">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center">
+                                                            <FileCheck size={16} />
+                                                        </div>
+                                                        <span className="text-sm font-medium text-slate-700">Completion Report</span>
                                                     </div>
-                                                    <span className="text-sm font-medium text-slate-700">Completion Report</span>
-                                                </div>
-                                                <Download size={16} className="text-slate-400 group-hover:text-delaval-blue" />
-                                            </a>
-                                        )}
-                                    </div>
-                                )}
+                                                    <Download size={16} className="text-slate-400 group-hover:text-delaval-blue" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1109,7 +1263,7 @@ const JobDetails = () => {
                             {job.customers?.name || `Tag #${job.tag_number || 'N/A'}`}
                         </h1>
                         {(() => {
-                            const isOverdue = job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date();
+                            const isOverdue = job.status !== 'Completed' && job.date_completed && new Date(job.date_completed!) < new Date();
                             if (isOverdue) return <span className="text-[10px] font-black text-red-600 uppercase tracking-tighter">OVERDUE • {timeLeft}</span>;
                             if (job.date_completed && job.status !== 'Completed') return <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tighter">Ends in {timeLeft}</span>;
                             return <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Job Details</span>;
@@ -1193,6 +1347,43 @@ const JobDetails = () => {
                                 </div>
                             </div>
                         )}
+                    </div>
+
+                     {/* Mobile Machine & Order Info */}
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                        <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Machine & Order Tracking</h3>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Whole Good Number</label>
+                                <input 
+                                    type="text"
+                                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-delaval-blue/20"
+                                    placeholder="Permanent Machine ID..."
+                                    value={job.whole_good_number || ''}
+                                    onChange={(e) => setJob({...job, whole_good_number: e.target.value})}
+                                    onBlur={async () => {
+                                        await supabase.from('jobs').update({ whole_good_number: job.whole_good_number }).eq('id', job.id);
+                                        showToast('Saved', 'Machine ID updated', 'success');
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">PO / IO Number</label>
+                                <input 
+                                    type="text"
+                                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-delaval-blue/20"
+                                    placeholder="Purchase Order Reference..."
+                                    value={job.po_number || ''}
+                                    onChange={(e) => setJob({...job, po_number: e.target.value})}
+                                    onBlur={async () => {
+                                        await supabase.from('jobs').update({ po_number: job.po_number }).eq('id', job.id);
+                                        showToast('Saved', 'PO Number updated', 'success');
+                                    }}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Equipment Card */}
@@ -1562,7 +1753,7 @@ const JobDetails = () => {
                     </div>
                 </div>
             </div>
-        </>
+        </Fragment>
     );
 };
 

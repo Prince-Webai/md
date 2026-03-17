@@ -63,8 +63,9 @@ const Customers = () => {
                 setSelectedCustomer(null);
                 setIsDeleteModalOpen(false);
                 setDeleteId(null);
+                showToast('Deleted', 'Customer deleted successfully', 'success');
             } else {
-                showToast('Error', 'Failed to delete customer', 'error');
+                showToast('Error', error.toString() || 'Failed to delete customer', 'error');
             }
         } catch (error) {
             console.error('Error deleting customer:', error);
@@ -559,11 +560,8 @@ const Customers = () => {
                                     </div>
                                 </div>
                                 <div className="text-left md:text-right flex flex-col items-start md:items-end gap-2">
-                                    <div>
-                                        <div className="text-sm text-slate-500 mb-1">Customer Status</div>
-                                        <div className={`text-2xl font-extrabold mb-4 text-green-600`}>
-                                            In Good Standing
-                                        </div>
+                                    <div className="mb-4">
+                                        {/* Status removed */}
                                     </div>
                                     <div className="flex gap-2">
                                         <button
@@ -910,9 +908,17 @@ const Customers = () => {
                             >
                                 <ArrowLeft size={20} />
                             </button>
-                            <button onClick={handleEditClick} className="text-sm font-bold text-slate-700 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm active:scale-95 transition-transform">
-                                Edit
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button onClick={handleEditClick} className="text-sm font-bold text-slate-700 bg-white px-4 py-2 rounded-full border border-slate-200 shadow-sm active:scale-95 transition-transform">
+                                    Edit
+                                </button>
+                                <button 
+                                    onClick={handleDeleteClick} 
+                                    className="p-2 text-red-600 bg-white border border-red-100 rounded-full shadow-sm active:scale-95 transition-transform"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Customer Profile Header */}
@@ -928,11 +934,7 @@ const Customers = () => {
                         </div>
 
                         {/* Balance Banner */}
-                        <div className="bg-[#0A8043] rounded-2xl p-5 mb-6 text-white shadow-[0_8px_20px_rgba(0,81,165,0.2)] relative overflow-hidden">
-                            <div className="absolute -right-6 -top-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-                            <div className="text-white/80 text-[11px] font-bold uppercase tracking-widest mb-1 relative z-10">Customer Status</div>
-                            <div className="text-3xl font-black tracking-tight relative z-10">In Good Standing</div>
-                        </div>
+                         {/* Status removed */}
 
                         {/* Quick Actions Grid */}
                         <div className="grid grid-cols-2 gap-3 mb-8">

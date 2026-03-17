@@ -61,6 +61,10 @@ export interface Job {
     completion_report_pdf_url?: string;
     job_number?: number | string;
 
+    // Machine & Order Tracking
+    whole_good_number?: string;
+    po_number?: string;
+
     // Joins
     customers?: Customer;
     job_items?: JobItem[];

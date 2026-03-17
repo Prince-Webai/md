@@ -277,7 +277,64 @@ export const dataService = {
 
     async deleteCustomer(id: string): Promise<{ error: any }> {
         if (!isSupabaseConfigured()) return { error: 'Supabase not configured' };
-        return await supabase.from('customers').delete().eq('id', id);
+
+        try {
+            // 1. Check for active jobs
+            const { data: jobs, error: jobsError } = await supabase
+                .from('jobs')
+                .select('id, status')
+                .eq('customer_id', id);
+
+            if (jobsError) throw jobsError;
+
+            const activeJobs = (jobs || []).filter(j => !['Completed', 'Closed'].includes(j.status));
+            if (activeJobs.length > 0) {
+                return { error: new Error('Cannot delete customer with active or running jobs. Please complete or close all jobs first.') };
+            }
+
+            // 2. Perform recursive cleanup for all jobs (this handles items, invoices, etc. per job)
+            for (const job of (jobs || [])) {
+                const { error: deleteJobError } = await this.deleteJob(job.id);
+                if (deleteJobError) throw deleteJobError;
+            }
+
+            // 3. Delete standalone invoices (not linked to a job)
+            const { data: standaloneInvoices } = await supabase
+                .from('invoices')
+                .select('id')
+                .eq('customer_id', id)
+                .is('job_id', null);
+
+            if (standaloneInvoices && standaloneInvoices.length > 0) {
+                for (const inv of standaloneInvoices) {
+                    const { error: invError } = await this.deleteInvoice(inv.id);
+                    if (invError) throw invError;
+                }
+            }
+
+            // 4. Delete standalone quotes (if table exists and we have a method, otherwise handle manually)
+            // Assuming quotes follow similar pattern to invoices
+            const { data: quotes } = await supabase
+                .from('quotes')
+                .select('id')
+                .eq('customer_id', id)
+                .is('job_id', null);
+            
+            if (quotes && quotes.length > 0) {
+                const quoteIds = quotes.map(q => q.id);
+                await supabase.from('quote_items').delete().in('quote_id', quoteIds);
+                await supabase.from('quotes').delete().in('id', quoteIds);
+            }
+
+            // 5. Delete statements
+            await supabase.from('statements').delete().eq('customer_id', id);
+
+            // 6. Finally, delete the customer record
+            return await supabase.from('customers').delete().eq('id', id);
+        } catch (error) {
+            console.error("Failed to delete customer safely", error);
+            return { error };
+        }
     },
 
     async updateInvoice(id: string, updates: Partial<Invoice>): Promise<{ error: any }> {
