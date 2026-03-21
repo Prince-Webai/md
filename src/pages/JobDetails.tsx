@@ -1,12 +1,12 @@
 import { useEffect, useState, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle, Download, Printer, UserCheck, FileCheck, AlertCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, FileText, Wrench, Clock, Package, Receipt, CheckCircle, Play, Pause, StopCircle, Download, Printer, UserCheck, FileCheck, AlertCircle, AlertTriangle, Settings } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import SearchableSelect from '../components/SearchableSelect';
 import { useToast } from '../context/ToastContext';
 import { supabase } from '../lib/supabase';
-import { Job, JobItem, InventoryItem, Settings } from '../types';
+import { Job, JobItem, InventoryItem, Settings as GlobalSettings } from '../types';
 import { dataService } from '../services/dataService';
 
 const JobDetails = () => {
@@ -34,12 +34,14 @@ const JobDetails = () => {
     const [recommendations, setRecommendations] = useState('');
     const [mechanicSignOff, setMechanicSignOff] = useState('');
     const [timeLeft, setTimeLeft] = useState<string>('');
-    const [settings, setSettings] = useState<Settings | null>(null);
+    const [settings, setSettings] = useState<GlobalSettings | null>(null);
     const [history, setHistory] = useState<Job[]>([]);
     const [activeTab, setActiveTab] = useState<'items' | 'history' | 'labor'>('items');
     const [mobileTab, setMobileTab] = useState<'details' | 'parts' | 'labor' | 'history'>('details');
     const [engineers, setEngineers] = useState<any[]>([]);
     const [labourLogs, setLabourLogs] = useState<any[]>([]);
+    const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
+    const [selectedCompletionCategory, setSelectedCompletionCategory] = useState('');
 
     // Refresh timer logic when job updates
     useEffect(() => {
@@ -67,22 +69,10 @@ const JobDetails = () => {
     }, [timerStatus]);
 
     const formatTime = (totalSeconds: number) => {
-        if (job?.date_completed) {
-            const end = new Date(job.date_completed).getTime();
-            const diff = Math.floor((end - currentTime) / 1000);
-            const absoluteSeconds = Math.abs(diff);
-            const hrs = Math.floor(absoluteSeconds / 3600);
-            const mins = Math.floor((absoluteSeconds % 3600) / 60);
-            const secs = absoluteSeconds % 60;
-            const timeString = `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            return diff < 0 ? `-${timeString}` : timeString;
-        }
-
-        const totalHoursSoFar = (job?.total_hours_worked || 0) + (totalSeconds / 3600);
-        const hrs = Math.floor(totalHoursSoFar);
-        const mins = Math.floor((totalHoursSoFar - hrs) * 60);
-        const secs = Math.floor(((totalHoursSoFar - hrs) * 60 - mins) * 60);
-        return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        const h = Math.floor(totalSeconds / 3600);
+        const m = Math.floor((totalSeconds % 3600) / 60);
+        const s = Math.floor(totalSeconds % 60);
+        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
     const handleStartTimer = async () => {
@@ -115,7 +105,6 @@ const JobDetails = () => {
         const hoursThisSession = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
         const newTotalHours = (job.total_hours_worked || 0) + hoursThisSession;
 
-        // Auto-log to labour_logs using assigned engineer
         await supabase.from('labour_logs').insert([{
             job_id: job.id,
             mechanic_id: job.engineer_name || 'Unassigned',
@@ -131,13 +120,56 @@ const JobDetails = () => {
         }).eq('id', job.id);
 
         setJob({ ...job, timer_status: 'paused', timer_started_at: undefined, total_hours_worked: newTotalHours });
-        
-        // Refresh items to see if labor should be updated (optional, usually on completion)
         fetchJobItems();
+        fetchLabourLogs();
+        showToast('Session Paused', `Logged ${Math.round(hoursThisSession * 60)} minutes to work history.`, 'success');
     };
 
-    const handleCompleteJob = async () => {
+    const handleStopTimer = async () => {
         if (!job) return;
+        
+        const updates: any = { timer_status: 'stopped' };
+        
+        if (job.timer_started_at) {
+            const end = new Date();
+            const start = new Date(job.timer_started_at);
+            const hoursThisSession = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+            const newTotalHours = (job.total_hours_worked || 0) + hoursThisSession;
+            
+            await supabase.from('labour_logs').insert([{
+                job_id: job.id,
+                mechanic_id: job.engineer_name || 'Unassigned',
+                start_time: job.timer_started_at,
+                end_time: end.toISOString(),
+                duration_minutes: Math.round(hoursThisSession * 60)
+            }]);
+            
+            updates.total_hours_worked = newTotalHours;
+            updates.timer_started_at = null;
+        }
+
+        const { error } = await supabase.from('jobs').update(updates).eq('id', job.id);
+        if (!error) {
+            setJob({ ...job, ...updates });
+            fetchJobItems();
+            fetchLabourLogs();
+            if (updates.timer_status === 'stopped' && updates.total_hours_worked) {
+                showToast('Session Stopped', 'Final session logged to work history.', 'success');
+            }
+        }
+    };
+
+    const handleCompleteJob = async (categoryOverride?: string) => {
+        if (!job) return;
+
+        // If no category selected, open modal
+        if (!categoryOverride && !selectedCompletionCategory) {
+            setIsCompletionModalOpen(true);
+            return;
+        }
+
+        const category = categoryOverride || selectedCompletionCategory;
+
         if (timerStatus === 'running') {
             await handlePauseTimer();
         }
@@ -170,7 +202,8 @@ const JobDetails = () => {
             status: 'Completed',
             timer_status: 'stopped',
             actual_end_time: now,
-            total_hours_worked: totalRawHours // Keep raw hours for record, billable is in items
+            total_hours_worked: totalRawHours, // Keep raw hours for record, billable is in items
+            service_type: category // Standardized category (Requirement 9)
         }).eq('id', job.id);
 
         if (!error) {
@@ -178,28 +211,32 @@ const JobDetails = () => {
                 ...prev,
                 status: 'Completed',
                 timer_status: 'stopped',
-                actual_end_time: now
+                actual_end_time: now,
+                service_type: category
             } : null);
+            setIsCompletionModalOpen(false);
             fetchJobItems(); // Refresh for labor item
+            showToast('Success', `Job completed as ${category}!`, 'success');
         }
     };
 
     useEffect(() => {
-        if (!job || !job.date_completed || job.status === 'Completed') return;
+        if (!job || !job.date_completed || job.status === 'Completed') {
+            setTimeLeft('');
+            return;
+        }
 
         const updateTimer = () => {
             const now = new Date();
             const end = new Date(job.date_completed!);
             const diff = end.getTime() - now.getTime();
 
-            if (diff <= 0) {
-                setTimeLeft('00:00:00');
-            } else {
-                const h = Math.floor(diff / (1000 * 60 * 60));
-                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const s = Math.floor((diff % (1000 * 60)) / 1000);
-                setTimeLeft(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
-            }
+            const absoluteSeconds = Math.abs(Math.floor(diff / 1000));
+            const h = Math.floor(absoluteSeconds / 3600);
+            const m = Math.floor((absoluteSeconds % 3600) / 60);
+            const s = absoluteSeconds % 60;
+            const timeStr = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            setTimeLeft(diff < 0 ? `-${timeStr}` : timeStr);
         };
 
         updateTimer();
@@ -247,7 +284,12 @@ const JobDetails = () => {
 
         if (error) console.error('Error fetching job:', error);
         else {
-            setJob(data);
+            const mappedJob = {
+                ...data,
+                engineer_name: data.mechanic_id || data.engineer_name || '',
+                notes: data.problem_description || data.notes || ''
+            };
+            setJob(mappedJob);
             setDiagnosisNotes(data.diagnosis_notes || '');
             setRepairSummary(data.repair_summary || '');
             setRecommendations(data.recommendations || '');
@@ -560,7 +602,7 @@ const JobDetails = () => {
             // Info Grid Box
             doc.setFillColor(secondaryBg[0], secondaryBg[1], secondaryBg[2]);
             doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
-            doc.roundedRect(14, 66, 182, 28, 2, 2, 'FD');
+            doc.roundedRect(14, 66, 182, 34, 2, 2, 'FD');
 
             doc.setFontSize(9);
             // Column 1
@@ -570,9 +612,14 @@ const JobDetails = () => {
             doc.text(job.customers?.name || 'N/A', 55, 75);
 
             doc.setFont('helvetica', 'bold');
-            doc.text('SITE ADDRESS:', 20, 81);
+            doc.text('WHOLE GOOD NO:', 20, 81);
             doc.setFont('helvetica', 'normal');
-            doc.text(job.customers?.address || 'See account details', 55, 81);
+            doc.text(job.whole_good_number || 'N/A', 55, 81);
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('PO/IO NUMBER:', 20, 87);
+            doc.setFont('helvetica', 'normal');
+            doc.text(job.po_number || 'N/A', 55, 87);
 
             // Column 2
             doc.setFont('helvetica', 'bold');
@@ -763,7 +810,7 @@ const JobDetails = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="section-card">
+                        <div className="section-card overflow-visible relative z-20">
                             <div className="flex border-b border-slate-100 px-6 overflow-x-auto whitespace-nowrap scrollbar-hide">
                                 <button
                                     onClick={() => setActiveTab('items')}
@@ -852,8 +899,75 @@ const JobDetails = () => {
                                         </div>
 
                                         {job.status !== 'Completed' && (
-                                            <div className="mt-4 bg-slate-50 p-4 rounded-lg space-y-3">
-                                                <div className="flex gap-4">
+                                            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-5 relative overflow-visible z-10">
+                                                {/* Unified Active Session Work Hub */}
+                                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm transition-all duration-300">
+                                                    <div className="flex items-center gap-4">
+                                                        {(() => {
+                                                            const isOverdue = (job.status as string) !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date();
+                                                            return (
+                                                                <div className={`px-4 py-2.5 rounded-xl flex items-center gap-3 border transition-all duration-500 ${
+                                                                    isOverdue ? 'bg-red-50 border-red-200 text-red-700' :
+                                                                    job.date_completed ? 'bg-amber-50 border-amber-200 text-amber-700' :
+                                                                    'bg-slate-50 border-slate-200 text-slate-700'
+                                                                }`}>
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-tight">
+                                                                            {timerStatus === 'running' ? 'ACTIVE SESSION' : 'SESSION TIMER'}
+                                                                        </span>
+                                                                         <div className="text-[10px] font-bold text-slate-400 mt-1">
+                                                                             TOTAL: {formatTime(Math.round((job?.total_hours_worked || 0) * 3600))}
+                                                                         </div>
+
+                                                                        <div className="text-xl font-black font-mono flex items-center gap-2 leading-tight">
+                                                                            <Clock size={16} className={timerStatus === 'running' ? 'animate-pulse text-delaval-blue' : 'text-slate-400'} />
+                                                                            {formatTime(timerStatus === 'running' ? elapsedSeconds : 0)}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })()}
+
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 leading-tight">MECHANIC</span>
+                                                            <div className="flex items-center gap-2 text-sm font-bold text-slate-700 mt-0.5">
+                                                                <UserCheck size={14} className="text-delaval-blue" />
+                                                                {job.engineer_name || 'Unassigned'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex gap-2 w-full sm:w-auto">
+                                                        {timerStatus !== 'running' ? (
+                                                            <button
+                                                                onClick={handleStartTimer}
+                                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-delaval-blue text-white px-5 py-2.5 rounded-lg text-sm font-black hover:bg-delaval-dark-blue transition-all shadow-md active:scale-95"
+                                                            >
+                                                                <Play size={16} fill="currentColor" /> START
+                                                            </button>
+                                                        ) : (
+                                                            <button
+                                                                onClick={handlePauseTimer}
+                                                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-amber-500 text-white px-5 py-2.5 rounded-lg text-sm font-black hover:bg-amber-600 transition-all shadow-md active:scale-95"
+                                                            >
+                                                                <Pause size={16} fill="currentColor" /> PAUSE
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={handleStopTimer}
+                                                            disabled={timerStatus === 'stopped'}
+                                                            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-black transition-all shadow-sm ${
+                                                                timerStatus === 'stopped' 
+                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200 shadow-none' 
+                                                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 active:scale-95'
+                                                            }`}
+                                                        >
+                                                            <StopCircle size={16} /> STOP
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex gap-4 border-t border-slate-100 pt-4">
                                                     <div className="flex-1">
                                                         <SearchableSelect
                                                             label="Add Code / Product"
@@ -1011,35 +1125,6 @@ const JobDetails = () => {
                         <div className="section-card p-6">
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-lg font-bold text-slate-900">Job Control</h2>
-                                {(() => {
-                                    const isOverdue = job.status !== 'Completed' && job.date_completed && new Date(job.date_completed) < new Date();
-                                    return (
-                                        <div className={`px-4 py-2 rounded-xl flex items-center gap-3 shadow-md border animate-in fade-in transition-all duration-500 ${job.status === 'Completed' ? 'bg-[#E6F4EA] border-[#0A8043]/20 text-[#0A8043]' :
-                                            isOverdue ? 'bg-red-50 border-red-200 text-red-700 shadow-red-100' :
-                                                job.date_completed ? 'bg-amber-50 border-amber-200 text-amber-700 shadow-amber-100' :
-                                                    'bg-slate-100 text-slate-700 border-slate-200'
-                                            }`}>
-                                            <div className="flex flex-col items-end">
-                                                <span className="text-[10px] font-bold uppercase tracking-widest opacity-60">
-                                                    {job.status === 'Completed' ? 'Pipeline' : isOverdue ? 'OVERDUE' : job.date_completed ? 'Deadline Countdown' : 'Total Labour'}
-                                                </span>
-                                                <div className="text-xl font-black font-mono flex items-center gap-2">
-                                                    {job.status === 'Completed' ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <CheckCircle size={18} />
-                                                            <span>COMPLETED</span>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <Clock size={18} className={!isOverdue && timeLeft !== '00:00:00' ? 'animate-pulse text-[#0A8043]' : 'text-slate-400'} />
-                                                            {job.date_completed ? timeLeft : formatTime(timerStatus === 'running' ? elapsedSeconds : 0)}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
                             </div>
                             <div className="space-y-4">
                                 {/* Job Controls - Priority & Completion */}
@@ -1071,11 +1156,12 @@ const JobDetails = () => {
                                         </div>
 
                                         <button
-                                            onClick={handleCompleteJob}
-                                            className="w-full flex justify-center items-center gap-2 bg-[#0A8043] text-white hover:bg-[#065F30] py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 group"
+                                            onClick={() => handleCompleteJob()}
+                                            className="w-full flex justify-center items-center gap-3 bg-[#0A8043] text-white hover:bg-[#065F30] py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all shadow-lg active:scale-95 group overflow-hidden relative"
                                         >
-                                            <CheckCircle size={20} className="group-hover:scale-110 transition-transform" />
-                                            Mark Job as Completed
+                                            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                                            <CheckCircle size={20} className="relative group-hover:scale-110 transition-transform" />
+                                            <span className="relative">Mark Job as Completed</span>
                                         </button>
                                     </div>
                                 )}
@@ -1188,7 +1274,7 @@ const JobDetails = () => {
                                                         options={engineers.map(e => ({ value: e.name, label: e.name }))}
                                                         value={job.engineer_name || ''}
                                                         onChange={async (val) => {
-                                                            const { error } = await supabase.from('jobs').update({ engineer_name: val }).eq('id', job.id);
+                                                            const { error } = await supabase.from('jobs').update({ mechanic_id: val }).eq('id', job.id);
                                                             if (!error) {
                                                                 setJob({ ...job, engineer_name: val });
                                                                 showToast('Updated', `Mechanic changed to ${val}`, 'success');
@@ -1264,7 +1350,7 @@ const JobDetails = () => {
                         </h1>
                         {(() => {
                             const isOverdue = job.status !== 'Completed' && job.date_completed && new Date(job.date_completed!) < new Date();
-                            if (isOverdue) return <span className="text-[10px] font-black text-red-600 uppercase tracking-tighter">OVERDUE • {timeLeft}</span>;
+                            if (isOverdue) return <span className="text-[10px] font-black text-red-600 uppercase tracking-tighter">OVERDUE</span>;
                             if (job.date_completed && job.status !== 'Completed') return <span className="text-[10px] font-bold text-amber-600 uppercase tracking-tighter">Ends in {timeLeft}</span>;
                             return <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Job Details</span>;
                         })()}
@@ -1452,7 +1538,7 @@ const JobDetails = () => {
                                         value={diagnosisNotes}
                                         onChange={e => setDiagnosisNotes(e.target.value)}
                                         onBlur={async () => {
-                                            await supabase.from('jobs').update({ diagnosis_notes: diagnosisNotes }).eq('id', id);
+                                            await supabase.from('jobs').update({ diagnosis_notes: diagnosisNotes }).eq('id', job.id);
                                             showToast('Success', 'Diagnosis notes saved', 'success');
                                         }}
                                     />
@@ -1466,14 +1552,66 @@ const JobDetails = () => {
                                         value={repairSummary}
                                         onChange={e => setRepairSummary(e.target.value)}
                                         onBlur={async () => {
-                                            await supabase.from('jobs').update({ repair_summary: repairSummary }).eq('id', id);
+                                            await supabase.from('jobs').update({ repair_summary: repairSummary }).eq('id', job.id);
                                             showToast('Success', 'Repair summary saved', 'success');
                                         }}
                                     />
                                 </div>
+
                                 {/* Actions */}
                                 {job.status !== 'Completed' && job.status !== 'Closed' && (
                                     <div className="mt-6 space-y-3">
+                                        {/* Unified Mobile Time Tracking */}
+                                        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">
+                                                        {timerStatus === 'running' ? 'ACTIVE SESSION' : 'SESSION TIMER'}
+                                                     <div className="text-[10px] font-bold text-slate-500 mt-1">
+                                                         Total: {formatTime(Math.round((job?.total_hours_worked || 0) * 3600))}
+                                                     </div>
+
+                                                    </span>
+                                                    <div className="flex items-center gap-2 text-sm font-bold text-slate-700 mt-1">
+                                                        <UserCheck size={14} className="text-delaval-blue" />
+                                                        {job.engineer_name || 'Unassigned'}
+                                                    </div>
+                                                </div>
+                                                <div className={`px-3 py-1.5 rounded-lg font-mono font-black text-lg ${timerStatus === 'running' ? 'bg-delaval-blue/5 text-delaval-blue animate-pulse' : 'bg-slate-50 text-slate-400'}`}>
+                                                    {formatTime(timerStatus === 'running' ? elapsedSeconds : 0)}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-3 pt-1">
+                                                {timerStatus !== 'running' ? (
+                                                    <button
+                                                        onClick={handleStartTimer}
+                                                        className="flex-1 flex items-center justify-center gap-2 bg-delaval-blue text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md active:scale-95"
+                                                    >
+                                                        <Play size={16} fill="currentColor" /> START
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={handlePauseTimer}
+                                                        className="flex-1 flex items-center justify-center gap-2 bg-amber-500 text-white py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-md active:scale-95"
+                                                    >
+                                                        <Pause size={16} fill="currentColor" /> PAUSE
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={handleStopTimer}
+                                                    disabled={timerStatus === 'stopped'}
+                                                    className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${
+                                                        timerStatus === 'stopped'
+                                                        ? 'bg-slate-50 text-slate-300 cursor-not-allowed border border-slate-100 shadow-none'
+                                                        : 'bg-white border border-slate-200 text-slate-700 shadow-sm active:scale-95'
+                                                    }`}
+                                                >
+                                                    <StopCircle size={16} /> STOP
+                                                </button>
+                                            </div>
+                                        </div>
+
                                         <button
                                             onClick={generateJobSheet}
                                             disabled={isGenerating}
@@ -1483,19 +1621,10 @@ const JobDetails = () => {
                                         </button>
 
                                         <button
-                                            onClick={async () => {
-                                                const hasParked = items.some(i => i.type === 'part' && i.status === 'Park Mode');
-                                                if (hasParked) {
-                                                    showToast('Warning', 'Please resolve all parked parts (Used or Returned) before completing the job.', 'error');
-                                                    setMobileTab('parts');
-                                                    return;
-                                                }
-                                                // Proceed to sign-off modal or direct completion
-                                                handleCompleteJob();
-                                            }}
-                                            className="w-full flex items-center justify-center gap-2 bg-[#0A8043] text-white py-3 rounded-xl font-bold text-sm shadow-md shadow-[#0A8043]/10"
+                                            onClick={() => handleCompleteJob()}
+                                            className="w-full flex items-center justify-center gap-3 bg-[#0A8043] text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-[#0A8043]/20 active:scale-95 transition-all"
                                         >
-                                            <CheckCircle size={18} /> Complete Job
+                                            <CheckCircle size={18} /> MARK AS COMPLETED
                                         </button>
                                     </div>
                                 )}
@@ -1637,11 +1766,11 @@ const JobDetails = () => {
                         )}
 
                         {mobileTab === 'labor' && (
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 {/* Add Labor Form */}
                                 {job.status !== 'Completed' && (
-                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 mb-6 space-y-3">
-                                        <h3 className="text-sm font-bold text-slate-900">Add Time/Labour</h3>
+                                    <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-3">
+                                        <h3 className="text-sm font-bold text-slate-900">Add Time/Labour (Billable)</h3>
                                         <div>
                                             <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Description</label>
                                             <input
@@ -1685,14 +1814,14 @@ const JobDetails = () => {
                                     </div>
                                 )}
 
-                                {/* Labor List */}
-                                <div className="flex justify-between items-center px-1 mb-2">
-                                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Labour Log ({laborItems.length})</span>
-                                    <span className="text-sm font-bold text-slate-900">Total: €{totalLaborCost.toFixed(2)}</span>
-                                </div>
+                                {/* Labor Items (Billable) */}
                                 <div className="space-y-3">
+                                    <div className="flex justify-between items-center px-1">
+                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Billable Labour ({laborItems.length})</span>
+                                        <span className="text-sm font-bold text-slate-900">Total: €{totalLaborCost.toFixed(2)}</span>
+                                    </div>
                                     {laborItems.length === 0 ? (
-                                        <p className="text-sm text-slate-500 text-center py-4 bg-white rounded-xl border border-slate-100">No time added yet.</p>
+                                        <p className="text-sm text-slate-500 text-center py-4 bg-white rounded-xl border border-slate-100">No billable time added yet.</p>
                                     ) : (
                                         laborItems.map(item => (
                                             <div key={item.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex justify-between items-center">
@@ -1710,6 +1839,34 @@ const JobDetails = () => {
                                                 </div>
                                             </div>
                                         ))
+                                    )}
+                                </div>
+
+                                {/* Timer Work History (Logs) */}
+                                <div className="space-y-3 pt-4 border-t border-slate-100">
+                                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest pl-1">Work History (Logs)</h3>
+                                    {labourLogs.length === 0 ? (
+                                        <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                            <p className="text-xs text-slate-400 font-medium">No sessions recorded yet.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-2">
+                                            {labourLogs.map(log => (
+                                                <div key={log.id} className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <span className="text-[10px] font-black text-delaval-blue uppercase">{log.mechanic_id}</span>
+                                                        <span className="text-[10px] font-mono font-bold text-slate-500">{new Date(log.start_time).toLocaleDateString()}</span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-xs text-slate-600">
+                                                            {new Date(log.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - 
+                                                            {log.end_time ? new Date(log.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Running...'}
+                                                        </span>
+                                                        <span className="text-xs font-black text-slate-900">{log.duration_minutes} min</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -1753,6 +1910,45 @@ const JobDetails = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Completion Category Modal */}
+            {isCompletionModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-8">
+                            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2">Service Completion</h3>
+                            <p className="text-slate-500 font-medium mb-8">Please select a standardized category to finalize this job record.</p>
+
+                            <div className="grid gap-3">
+                                {[
+                                    { id: 'Minor Service', icon: <Settings size={20} />, color: 'bg-blue-50 text-blue-600' },
+                                    { id: 'Full Service', icon: <Wrench size={20} />, color: 'bg-emerald-50 text-emerald-600' },
+                                    { id: 'General Repair', icon: <Package size={20} />, color: 'bg-orange-50 text-orange-600' },
+                                    { id: 'Other', icon: <CheckCircle size={20} />, color: 'bg-slate-50 text-slate-600' }
+                                ].map((cat) => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => handleCompleteJob(cat.id)}
+                                        className="flex items-center gap-4 p-5 rounded-2xl border border-slate-100 hover:border-delaval-blue/30 hover:bg-slate-50 transition-all group text-left"
+                                    >
+                                        <div className={`p-3 rounded-xl ${cat.color} group-hover:scale-110 transition-transform`}>
+                                            {cat.icon}
+                                        </div>
+                                        <span className="font-black text-slate-800 tracking-tight">{cat.id}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => setIsCompletionModalOpen(false)}
+                                className="w-full mt-8 py-4 text-sm font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </Fragment>
     );
 };

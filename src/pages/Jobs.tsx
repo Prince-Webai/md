@@ -87,7 +87,12 @@ const Jobs = () => {
 
     const fetchJobs = async () => {
         const userRole = user?.user_metadata?.role;
-        const engineerToFetch = userRole === 'Engineer' ? (user?.user_metadata?.name || user?.email?.split('@')[0]) : undefined;
+        const isAdminAccount = userRole === 'Admin' || userRole === 'Owner' || user?.email === 'info@mdburkeltd.ie';
+        
+        const engineerToFetch = (userRole === 'Engineer' && !isAdminAccount) 
+            ? (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0]) 
+            : undefined;
+
         // Fetch ALL jobs for this context (admin/engineer) to keep tab counts accurate
         const data = await dataService.getJobs(undefined, engineerToFetch);
         setJobs(data);

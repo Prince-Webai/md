@@ -33,7 +33,8 @@ export const dataService = {
                 ...job,
                 service_type: job.machine_details || job.service_type || '',
                 engineer_name: job.mechanic_id || job.engineer_name || '',
-                notes: job.problem_description || job.notes || ''
+                notes: job.problem_description || job.notes || '',
+                tag_number: job.tag_number || job.job_number // Robustness for tag number
             }));
         } catch (error) {
             console.error('Error fetching jobs:', error);
@@ -435,7 +436,7 @@ export const dataService = {
     },
 
     async getAnalyticsData(daysOrStartDate: number | string = 7, endDate?: string): Promise<any> {
-        if (!isSupabaseConfigured()) return { jobs: [], items: [] };
+        if (!isSupabaseConfigured()) return { jobs: [], items: [], labourLogs: [] };
 
         let startDateStr: string;
         if (typeof daysOrStartDate === 'string') {
@@ -447,25 +448,27 @@ export const dataService = {
         }
 
         try {
-            let jobsQuery = supabase.from('jobs').select('*').gte('created_at', startDateStr);
-            let itemsQuery = supabase.from('job_items').select('*, inventory(name, sku)').gte('created_at', startDateStr);
+            let jobsQuery = supabase.from('jobs').select('*, customers(name)').gte('created_at', startDateStr);
+            let itemsQuery = supabase.from('job_items').select('*, inventory(name, sku, cost_price)').gte('created_at', startDateStr);
+            let logsQuery = supabase.from('labour_logs').select('*').gte('created_at', startDateStr);
 
             if (endDate) {
-                // Ensure endDate includes the full day
                 const endDateTime = endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`;
                 jobsQuery = jobsQuery.lte('created_at', endDateTime);
                 itemsQuery = itemsQuery.lte('created_at', endDateTime);
+                logsQuery = logsQuery.lte('created_at', endDateTime);
             }
 
-            const [jobsRes, itemsRes] = await Promise.all([jobsQuery, itemsQuery]);
+            const [jobsRes, itemsRes, logsRes] = await Promise.all([jobsQuery, itemsQuery, logsQuery]);
 
             return {
                 jobs: jobsRes.data || [],
-                items: itemsRes.data || []
+                items: itemsRes.data || [],
+                labourLogs: logsRes.data || []
             };
         } catch (error) {
             console.error('Error fetching analytics data:', error);
-            return { jobs: [], items: [] };
+            return { jobs: [], items: [], labourLogs: [] };
         }
     },
 

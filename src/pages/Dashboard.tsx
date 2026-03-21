@@ -56,7 +56,11 @@ const Dashboard = () => {
         try {
             setLoading(true);
             const userRole = user?.user_metadata?.role;
-            const engineerName = userRole === 'Engineer' ? (user?.user_metadata?.name || user?.email?.split('@')[0]) : undefined;
+            const isAdminAccount = userRole === 'Admin' || userRole === 'Owner' || user?.email === 'info@mdburkeltd.ie';
+            
+            const engineerName = (userRole === 'Engineer' && !isAdminAccount) 
+                ? (user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0]) 
+                : undefined;
 
             const [allJobs, inventoryArray] = await Promise.all([
                 dataService.getJobs(undefined, engineerName),
@@ -212,7 +216,7 @@ const Dashboard = () => {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">Pipeline Overview</h1>
-                        <p className="text-slate-500 text-sm">Welcome back, {user?.user_metadata?.name || 'Administrator'}</p>
+                        <p className="text-slate-500 text-sm">Welcome back, {user?.user_metadata?.name || 'Admin'}</p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-3">

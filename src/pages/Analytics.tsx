@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts';
 import { dataService } from '../services/dataService';
-import { Calendar, CheckCircle, Package, Settings, Users, ArrowUpRight, ArrowDownRight, Filter } from 'lucide-react';
+import { Calendar, CheckCircle, Package, Settings, Users, ArrowUpRight, ArrowDownRight, Filter, TrendingUp, Info, Wrench, Euro, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Analytics = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.user_metadata?.role === 'Admin' || user?.user_metadata?.role === 'Owner' || user?.email === 'info@mdburke.ie';
+
     const [stats, setStats] = useState<any>({
         totalJobs: 0,
         completionRate: 0,
@@ -11,7 +15,9 @@ const Analytics = () => {
         partsUsed: 0,
         jobTrend: [],
         pipelineDist: [],
-        topParts: []
+        topParts: [],
+        mechanicStats: [],
+        profitability: { revenue: 0, cost: 0, margin: 0, marginPercent: 0 }
     });
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState<number | 'custom'>(7); // default 7 days
@@ -25,17 +31,46 @@ const Analytics = () => {
     const fetchAnalyticsData = async () => {
         try {
             setLoading(true);
-            const { jobs, items } = await dataService.getAnalyticsData(
+            const { jobs, items, labourLogs } = await dataService.getAnalyticsData(
                 timeRange === 'custom' ? startDate : timeRange,
                 timeRange === 'custom' ? endDate : undefined
             );
             const topParts = await dataService.getTopUsedParts(5);
 
             // 1. Calculate Summary Stats
-            const completedJobs = jobs.filter((j: any) => j.status === 'Completed').length;
+            const completedJobsList = jobs.filter((j: any) => j.status === 'Completed');
+            const completedJobs = completedJobsList.length;
             const completionRate = jobs.length > 0 ? Math.round((completedJobs / jobs.length) * 100) : 0;
 
-            // 2. Pipeline Stage Distribution
+            // 2. Mechanic Performance
+            const mechMap = new Map();
+            // Count jobs completed per mechanic
+            completedJobsList.forEach((j: any) => {
+                const mech = j.engineer_name || j.mechanic_id || 'Unassigned';
+                const current = mechMap.get(mech) || { name: mech, jobs: 0, hours: 0 };
+                mechMap.set(mech, { ...current, jobs: current.jobs + 1 });
+            });
+            // Add hours from labour logs
+            labourLogs.forEach((log: any) => {
+                const mech = log.mechanic_id || 'Unassigned';
+                const current = mechMap.get(mech) || { name: mech, jobs: 0, hours: 0 };
+                const hours = (log.duration_minutes || 0) / 60;
+                mechMap.set(mech, { ...current, hours: current.hours + hours });
+            });
+            const mechanicStats = Array.from(mechMap.values()).sort((a, b) => b.jobs - a.jobs);
+
+            // 3. Profitability
+            let totalRevenue = 0;
+            let totalCost = 0;
+            items.forEach((item: any) => {
+                totalRevenue += (item.total || 0);
+                const costPrice = item.inventory?.cost_price || 0;
+                totalCost += (item.quantity * costPrice);
+            });
+            const margin = totalRevenue - totalCost;
+            const marginPercent = totalRevenue > 0 ? (margin / totalRevenue) * 100 : 0;
+
+            // 4. Pipeline Stage Distribution
             const statusCounts: any = {};
             jobs.forEach((j: any) => {
                 const status = j.status || 'Booked In';
@@ -52,10 +87,10 @@ const Analytics = () => {
             const serviceMix = Object.entries(serviceCounts).map(([name, value]) => ({ name, value }));
             const topService = serviceMix.sort((a: any, b: any) => b.value - a.value)[0]?.name || 'N/A';
 
-            // 3. Parts Used Total
-            const totalParts = items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
+            // 5. Parts Used Total
+            const totalParts = items.filter((i: any) => i.type === 'part').reduce((sum: number, item: any) => sum + (item.quantity || 0), 0);
 
-            // 4. Job Trend Data
+            // 6. Job Trend Data
             const chartDataPoints: any[] = [];
             const daysToChart = timeRange === 'custom' 
                 ? Math.min(Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (1000 * 3600 * 24)) + 1, 90)
@@ -82,7 +117,9 @@ const Analytics = () => {
                 partsUsed: totalParts,
                 jobTrend: chartDataPoints,
                 pipelineDist,
-                topParts
+                topParts,
+                mechanicStats,
+                profitability: { revenue: totalRevenue, cost: totalCost, margin, marginPercent }
             });
         } catch (error) {
             console.error('Error fetching analytics data:', error);
@@ -182,19 +219,148 @@ const Analytics = () => {
                 />
             </div>
 
+            {isAdmin && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in duration-500">
+                    {/* Profitability Summary */}
+                    <div className="lg:col-span-1 section-card p-8 bg-slate-900 text-white border-none shadow-2xl shadow-slate-900/20">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-lg font-black tracking-tight">Business Vitality</h2>
+                                <p className="text-slate-400 text-xs font-bold">Revenue & Operating Margin</p>
+                            </div>
+                            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                                <Euro size={20} className="text-[#14A637]" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Revenue</p>
+                                <div className="text-3xl font-black">€{stats.profitability.revenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Gross Margin</p>
+                                    <div className="text-xl font-black text-[#14A637]">€{stats.profitability.margin.toLocaleString(undefined, { minimumFractionDigits: 0 })}</div>
+                                </div>
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Margin %</p>
+                                    <div className="text-xl font-black text-blue-400">{stats.profitability.marginPercent.toFixed(1)}%</div>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-white/10">
+                                <div className="flex justify-between items-center text-xs font-bold text-slate-400 mb-2">
+                                    <span>Operating Efficiency</span>
+                                    <span>Optimal: 35%+</span>
+                                </div>
+                                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full transition-all duration-1000 ${stats.profitability.marginPercent > 30 ? 'bg-green-500' : 'bg-orange-500'}`}
+                                        style={{ width: `${Math.min(stats.profitability.marginPercent, 100)}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Mechanic Performance */}
+                    <div className="lg:col-span-2 section-card p-8">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="text-lg font-black text-slate-900 tracking-tight">Team Performance</h2>
+                                <p className="text-slate-400 text-xs font-bold">Throughput per active engineer</p>
+                            </div>
+                            <TrendingUp size={20} className="text-slate-300" />
+                        </div>
+
+                        <div className="h-[250px] w-full mt-4">
+                            {loading ? (
+                                <div className="h-full flex items-center justify-center text-slate-400 font-medium italic">Calculating contributions...</div>
+                            ) : stats.mechanicStats.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={stats.mechanicStats}>
+                                        <XAxis 
+                                            dataKey="name" 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} 
+                                        />
+                                        <YAxis hide />
+                                        <RechartsTooltip 
+                                            content={({ active, payload, label }) => {
+                                                if (active && payload && payload.length) {
+                                                    return (
+                                                        <div className="bg-slate-900 text-white p-3 rounded-xl shadow-2xl border border-slate-800">
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
+                                                            <div className="space-y-1">
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-xs font-bold text-slate-300">Jobs:</span>
+                                                                    <span className="text-xs font-black text-white">{payload[0].value}</span>
+                                                                </div>
+                                                                <div className="flex justify-between gap-4">
+                                                                    <span className="text-xs font-bold text-slate-300">Hours:</span>
+                                                                    <span className="text-xs font-black text-blue-400">{stats.mechanicStats.find((m:any) => m.name === label)?.hours.toFixed(1)}h</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            }}
+                                        />
+                                        <Bar 
+                                            dataKey="jobs" 
+                                            fill="#0A8043" 
+                                            radius={[6, 6, 0, 0]} 
+                                            barSize={40}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-slate-400 font-medium italic">No performance data for selection</div>
+                            )}
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 border-t border-slate-50 pt-6">
+                            {stats.mechanicStats.slice(0, 4).map((mech: any) => (
+                                <div key={mech.name} className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{mech.name.split(' ')[0]}</span>
+                                    <span className="text-sm font-black text-slate-900">{mech.jobs} <span className="text-[10px] text-slate-400">Jobs</span></span>
+                                    <span className="text-[11px] font-bold text-blue-600">{mech.hours.toFixed(1)}h</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {!isAdmin && (
+                <div className="section-card p-8 bg-blue-50 border-blue-100 flex items-center gap-6 animate-in slide-in-from-bottom-4">
+                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                        <ShieldAlert size={28} className="text-blue-600" />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-slate-900 tracking-tight">Private Analytics Layer</h3>
+                        <p className="text-slate-500 font-medium text-sm">Team performance and business financial metrics are restricted to Admins and Owners.</p>
+                    </div>
+                </div>
+            )}
+
             {/* Main Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Volume Trend */}
                 <div className="lg:col-span-2 section-card p-4 sm:p-8">
                     <div className="flex justify-between items-center mb-6 sm:mb-8">
                         <div>
-                            <h2 className="text-base sm:text-lg font-black text-slate-900">Workflow Volume</h2>
+                            <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">Workflow Volume</h2>
                             <p className="text-xs sm:text-sm font-medium text-slate-400">Scheduled throughput over time</p>
                         </div>
                     </div>
                     <div className="h-[300px] w-full">
                         {loading ? (
-                            <div className="h-full flex items-center justify-center text-slate-400 font-medium">Analyzing trends...</div>
+                            <div className="h-full flex items-center justify-center text-slate-400 font-medium italic">Scanning pipeline...</div>
                         ) : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={stats.jobTrend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -226,11 +392,11 @@ const Analytics = () => {
 
                 {/* Pipeline Distribution */}
                 <div className="section-card p-8">
-                    <h2 className="text-lg font-black text-slate-900 mb-1">Pipeline</h2>
-                    <p className="text-sm font-medium text-slate-400 mb-6">Distribution by job stage</p>
+                    <h2 className="text-lg font-black text-slate-900 tracking-tight mb-1">Pipeline Distribution</h2>
+                    <p className="text-sm font-medium text-slate-400 mb-6">Distribution by active job stage</p>
                     <div className="h-[250px] w-full relative">
                         {loading ? (
-                            <div className="h-full flex items-center justify-center text-slate-400 font-medium">Categorizing...</div>
+                            <div className="h-full flex items-center justify-center text-slate-400 font-medium italic">Categorizing...</div>
                         ) : stats.pipelineDist.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
@@ -261,7 +427,7 @@ const Analytics = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-slate-400 font-medium text-sm">No distribution data</div>
+                            <div className="h-full flex items-center justify-center text-slate-400 font-medium text-sm italic">No distribution data</div>
                         )}
                         {!loading && stats.pipelineDist.length > 0 && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -288,21 +454,23 @@ const Analytics = () => {
             <div className="section-card p-8">
                 <div className="flex justify-between items-center mb-8">
                     <div>
-                        <h2 className="text-lg font-black text-slate-900">Highest Use Inventory</h2>
-                        <p className="text-sm font-medium text-slate-400">Most consumed parts across all jobs</p>
+                        <h2 className="text-lg font-black text-slate-900 tracking-tight">Inventory Movement</h2>
+                        <p className="text-sm font-medium text-slate-400">Most consumed components across all service calls</p>
                     </div>
-                    <button className="text-xs font-black text-delaval-blue uppercase tracking-widest hover:underline">View Catalog</button>
+                    <button className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl text-slate-400 hover:text-delaval-blue transition-colors">
+                        <Filter size={18} />
+                    </button>
                 </div>
                 {loading ? (
-                    <div className="py-20 text-center text-slate-400 font-medium">Scanning inventory movement...</div>
+                    <div className="py-20 text-center text-slate-400 font-medium italic">Analyzing stock movement...</div>
                 ) : stats.topParts.length > 0 ? (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto no-scrollbar">
                         <table className="w-full">
                             <thead>
                                 <tr className="text-left">
-                                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Part Identification</th>
-                                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Movement</th>
-                                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Popularity</th>
+                                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Component Name</th>
+                                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Throughput</th>
+                                    <th className="pb-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Usage Velocity</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
@@ -310,24 +478,24 @@ const Analytics = () => {
                                     <tr key={idx} className="group">
                                         <td className="py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#0A8043]/10 group-hover:text-[#0A8043] transition-colors">
                                                     <Package size={18} />
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-black text-slate-900">{part.name}</div>
-                                                    <div className="text-[11px] font-bold text-slate-400 font-mono">{part.sku}</div>
+                                                    <div className="text-[11px] font-bold text-slate-400 font-mono tracking-tighter uppercase">{part.sku}</div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="py-4 text-center">
-                                            <span className="px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 font-black text-xs">
-                                                {part.count} Units Used
+                                            <span className="px-3 py-1.5 rounded-lg bg-slate-50 text-slate-900 font-black text-xs border border-slate-100 uppercase tracking-tighter">
+                                                {part.count} {part.count === 1 ? 'Unit' : 'Units'} Used
                                             </span>
                                         </td>
                                         <td className="py-4">
                                             <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                                                 <div
-                                                    className="h-full bg-[#0A8043] rounded-full"
+                                                    className="h-full bg-[#0A8043] rounded-full shadow-[0_0_8px_rgba(10,128,67,0.3)]"
                                                     style={{ width: `${(part.count / stats.topParts[0].count) * 100}%` }}
                                                 ></div>
                                             </div>
@@ -338,7 +506,7 @@ const Analytics = () => {
                         </table>
                     </div>
                 ) : (
-                    <div className="py-20 text-center text-slate-400 font-medium">No inventory usage detected for this period.</div>
+                    <div className="py-20 text-center text-slate-400 font-medium italic">No inventory movement detected.</div>
                 )}
             </div>
         </div>
