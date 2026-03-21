@@ -321,8 +321,16 @@ const JobDetails = () => {
     const handleAddItem = async () => {
         if (!id) return;
         try {
+            let qty = Number(newItem.quantity) || 1;
+            
+            // Requirement 1: Any partial hour is rounded up
+            if (newItem.type === 'labor') {
+                qty = Math.ceil(qty);
+            }
+
             const itemToInsert = {
                 ...newItem,
+                quantity: qty,
                 job_id: id,
                 status: newItem.type === 'part' ? 'Park Mode' : undefined
             };
